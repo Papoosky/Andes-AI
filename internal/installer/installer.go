@@ -64,12 +64,24 @@ func Plan(src catalog.Source, cat *catalog.Catalog, m *manifest.Manifest, profil
 }
 
 // Apply executes the plan: install/update actions copy the skill folder
-// (clean copy: destination removed first), skips are left untouched.
+// (clean copy: destination removed first), skips are left untouched unless
+// disk has been locally modified (checked at apply time).
 // The returned map is the complete `installed` section for the manifest.
 func Apply(src catalog.Source, actions []Action, skillsDir string) (map[string]manifest.InstalledSkill, error) {
 	installed := make(map[string]manifest.InstalledSkill, len(actions))
 	for _, a := range actions {
-		if a.Type != ActionSkip {
+		actionType := a.Type
+		// Check if skipped skill has been modified on disk: if so, repair it.
+		if actionType == ActionSkip {
+			diskPath := filepath.Join(skillsDir, a.SkillID)
+			diskHash, err := hashdir.Hash(diskPath)
+			if err == nil && diskHash != a.Hash {
+				// Disk modified, treat as update to repair
+				actionType = ActionUpdate
+			}
+		}
+
+		if actionType != ActionSkip {
 			dst := filepath.Join(skillsDir, a.SkillID)
 			if err := os.RemoveAll(dst); err != nil {
 				return nil, fmt.Errorf("no pude limpiar %s: %w", dst, err)
