@@ -10,6 +10,6 @@ func NewRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	root.AddCommand(newInitCmd())
+	root.AddCommand(newInitCmd(), newListCmd())
 	return root
 }
