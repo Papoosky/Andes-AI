@@ -44,7 +44,7 @@ func Load(path string) (*Manifest, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("no pude leer el manifiesto en %s: %w", path, err)
 	}
 	var m Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -57,7 +57,7 @@ func Load(path string) (*Manifest, error) {
 // A crash mid-write leaves the previous manifest intact.
 func (m *Manifest) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
+		return fmt.Errorf("no pude crear el directorio para %s: %w", path, err)
 	}
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
@@ -65,10 +65,14 @@ func (m *Manifest) Save(path string) error {
 	}
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".andes-*.tmp")
 	if err != nil {
-		return err
+		return fmt.Errorf("no pude crear el archivo temporal para %s: %w", path, err)
 	}
 	defer os.Remove(tmp.Name()) // no-op after successful rename
 	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
 		tmp.Close()
 		return err
 	}
