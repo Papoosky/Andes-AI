@@ -53,6 +53,9 @@ func TestApplySkipDoesNotTouchDisk(t *testing.T) {
 	if installed["golang"].Hash != "sha256:x" {
 		t.Errorf("skip debe conservar la entrada del manifiesto, got %+v", installed["golang"])
 	}
+	if installed["golang"].Profile != "tri" {
+		t.Errorf("skip debe conservar el profile en el manifiesto, got %+v", installed["golang"])
+	}
 }
 
 func TestApplyUpdateReplacesStaleFiles(t *testing.T) {
