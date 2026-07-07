@@ -98,6 +98,34 @@ func TestInitNonInteractiveRequiresFlags(t *testing.T) {
 	}
 }
 
+func TestInitRequiresProfiles(t *testing.T) {
+	home := t.TempDir()
+	// --catalog given but no --profiles and no previous manifest: actionable error.
+	if _, err := runAndes(t, home,
+		"init", "--catalog", fixtureCatalog(t), "--yes"); err == nil {
+		t.Error("init --yes sin perfiles debería fallar con error accionable")
+	}
+}
+
+func TestInitWithoutYesAborts(t *testing.T) {
+	home := t.TempDir()
+	out, err := runAndes(t, home,
+		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet")
+	if err == nil {
+		t.Fatal("init sin --yes debería abortar con error explícito")
+	}
+	// Plan must still be shown before aborting, and nothing installed.
+	if !bytes.Contains([]byte(out), []byte("Plan:")) {
+		t.Errorf("init sin --yes debería mostrar el plan antes de abortar:\n%s", out)
+	}
+	if _, statErr := os.Stat(filepath.Join(home, ".claude", "skills", "golang")); statErr == nil {
+		t.Error("init sin --yes no debería instalar skills")
+	}
+	if _, statErr := os.Stat(filepath.Join(home, ".claude", "andes.json")); statErr == nil {
+		t.Error("init sin --yes no debería escribir el manifiesto")
+	}
+}
+
 func TestInitDoesNotTouchForeignSkills(t *testing.T) {
 	home := t.TempDir()
 	foreign := filepath.Join(home, ".claude", "skills", "mi-skill-personal")
