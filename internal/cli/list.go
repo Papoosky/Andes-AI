@@ -60,7 +60,11 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 	fmt.Fprintln(w, "PERFIL\tSKILL\tESTADO")
 	for _, pname := range profileNames {
 		for _, id := range cat.Profiles[pname].Skills {
-			fmt.Fprintf(w, "%s\t%s\t%s\n", pname, id, skillStatus(src, m, id))
+			status, err := skillStatus(src, m, id)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\n", pname, id, status)
 		}
 	}
 	w.Flush()
@@ -73,17 +77,20 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 
 // skillStatus compares manifest hash vs catalog hash. Disk state is
 // doctor's job, not list's.
-func skillStatus(src catalog.Source, m *manifest.Manifest, id string) string {
+func skillStatus(src catalog.Source, m *manifest.Manifest, id string) (string, error) {
 	if m == nil {
-		return "✗ no instalada"
+		return "✗ no instalada", nil
 	}
 	inst, ok := m.Installed[id]
 	if !ok {
-		return "✗ no instalada"
+		return "✗ no instalada", nil
 	}
 	catHash, err := hashdir.Hash(src.SkillPath(id))
-	if err != nil || catHash != inst.Hash {
-		return "⚠ desactualizada"
+	if err != nil {
+		return "", fmt.Errorf("no pude leer la skill %q del catálogo: %w", id, err)
 	}
-	return "✓ instalada"
+	if catHash != inst.Hash {
+		return "⚠ desactualizada", nil
+	}
+	return "✓ instalada", nil
 }

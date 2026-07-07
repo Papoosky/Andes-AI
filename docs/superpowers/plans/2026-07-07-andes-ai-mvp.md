@@ -39,7 +39,7 @@
 ```bash
 cd /Users/pablozuniga/Desktop/workspace/andes-ai
 git init
-printf 'andes\n*.tmp\n' > .gitignore
+printf '/andes\n*.tmp\n' > .gitignore   # /andes ANCLADO: sin la barra, git ignora cmd/andes/ entero
 go mod init github.com/andespath/andes-ai
 go get github.com/spf13/cobra@v1.8.1
 ```
