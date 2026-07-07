@@ -3,6 +3,9 @@ package installer
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/andespath/andes-ai/internal/catalog"
@@ -58,4 +61,45 @@ func Plan(src catalog.Source, cat *catalog.Catalog, m *manifest.Manifest, profil
 		actions = append(actions, a)
 	}
 	return actions, nil
+}
+
+// Apply executes the plan: install/update actions copy the skill folder
+// (clean copy: destination removed first), skips are left untouched.
+// The returned map is the complete `installed` section for the manifest.
+func Apply(src catalog.Source, actions []Action, skillsDir string) (map[string]manifest.InstalledSkill, error) {
+	installed := make(map[string]manifest.InstalledSkill, len(actions))
+	for _, a := range actions {
+		if a.Type != ActionSkip {
+			dst := filepath.Join(skillsDir, a.SkillID)
+			if err := os.RemoveAll(dst); err != nil {
+				return nil, fmt.Errorf("no pude limpiar %s: %w", dst, err)
+			}
+			if err := copyDir(src.SkillPath(a.SkillID), dst); err != nil {
+				return nil, fmt.Errorf("no pude instalar la skill %q: %w", a.SkillID, err)
+			}
+		}
+		installed[a.SkillID] = manifest.InstalledSkill{Hash: a.Hash, Profile: a.Profile}
+	}
+	return installed, nil
+}
+
+func copyDir(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, 0o644)
+	})
 }
