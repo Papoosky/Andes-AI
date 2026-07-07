@@ -4,6 +4,7 @@ package doctor
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -43,10 +44,14 @@ func Check(src catalog.Source, m *manifest.Manifest, skillsDir string) ([]Findin
 		inst := m.Installed[id]
 		diskPath := filepath.Join(skillsDir, id)
 
-		if _, err := os.Stat(diskPath); errors.Is(err, fs.ErrNotExist) {
+		_, statErr := os.Stat(diskPath)
+		if errors.Is(statErr, fs.ErrNotExist) {
 			findings = append(findings, Finding{id, StatusMissing,
 				"re-corré `andes init` para reinstalarla"})
 			continue
+		}
+		if statErr != nil {
+			return nil, fmt.Errorf("no pude verificar la skill %q en %s: %w", id, diskPath, statErr)
 		}
 
 		diskHash, err := hashdir.Hash(diskPath)

@@ -58,7 +58,10 @@ func TestCheckMissingOnDisk(t *testing.T) {
 	src, m, skillsDir := setup(t)
 	os.RemoveAll(filepath.Join(skillsDir, "golang"))
 
-	findings, _ := doctor.Check(src, m, skillsDir)
+	findings, err := doctor.Check(src, m, skillsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(findings) != 1 || findings[0].Status != doctor.StatusMissing {
 		t.Errorf("findings = %+v, want 1 falta", findings)
 	}
@@ -68,7 +71,10 @@ func TestCheckLocallyModified(t *testing.T) {
 	src, m, skillsDir := setup(t)
 	os.WriteFile(filepath.Join(skillsDir, "golang", "SKILL.md"), []byte("# editado a mano"), 0o644)
 
-	findings, _ := doctor.Check(src, m, skillsDir)
+	findings, err := doctor.Check(src, m, skillsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(findings) != 1 || findings[0].Status != doctor.StatusModified {
 		t.Errorf("findings = %+v, want 1 modificada", findings)
 	}
