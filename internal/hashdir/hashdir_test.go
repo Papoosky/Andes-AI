@@ -44,10 +44,16 @@ func TestHashDeterministic(t *testing.T) {
 func TestHashChangesOnContentChange(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "SKILL.md", "# v1")
-	h1, _ := hashdir.Hash(dir)
+	h1, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	writeFile(t, dir, "SKILL.md", "# v2")
-	h2, _ := hashdir.Hash(dir)
+	h2, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if h1 == h2 {
 		t.Error("hash no cambió al cambiar contenido")
@@ -57,10 +63,16 @@ func TestHashChangesOnContentChange(t *testing.T) {
 func TestHashChangesOnNewFile(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "SKILL.md", "# v1")
-	h1, _ := hashdir.Hash(dir)
+	h1, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	writeFile(t, dir, "otro.md", "nuevo")
-	h2, _ := hashdir.Hash(dir)
+	h2, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if h1 == h2 {
 		t.Error("hash no cambió al agregar archivo")
@@ -73,10 +85,37 @@ func TestHashEqualDirsEqualHash(t *testing.T) {
 	for _, d := range []string{dir1, dir2} {
 		writeFile(t, d, "SKILL.md", "mismo contenido")
 	}
-	h1, _ := hashdir.Hash(dir1)
-	h2, _ := hashdir.Hash(dir2)
+	h1, err := hashdir.Hash(dir1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h2, err := hashdir.Hash(dir2)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if h1 != h2 {
 		t.Errorf("dirs iguales con hash distinto: %s != %s", h1, h2)
+	}
+}
+
+func TestHashChangesOnRename(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "a.md", "content")
+	h1, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Rename(filepath.Join(dir, "a.md"), filepath.Join(dir, "b.md")); err != nil {
+		t.Fatal(err)
+	}
+	h2, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if h1 == h2 {
+		t.Error("hash no cambió tras renombrar un archivo")
 	}
 }
 
