@@ -2,6 +2,7 @@
 package installer
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -71,13 +72,17 @@ func Apply(src catalog.Source, actions []Action, skillsDir string) (map[string]m
 	installed := make(map[string]manifest.InstalledSkill, len(actions))
 	for _, a := range actions {
 		actionType := a.Type
-		// Check if skipped skill has been modified on disk: if so, repair it.
+		// Check if skipped skill is missing or modified on disk: if so, repair it.
 		if actionType == ActionSkip {
 			diskPath := filepath.Join(skillsDir, a.SkillID)
 			diskHash, err := hashdir.Hash(diskPath)
-			if err == nil && diskHash != a.Hash {
-				// Disk modified, treat as update to repair
-				actionType = ActionUpdate
+			switch {
+			case errors.Is(err, fs.ErrNotExist):
+				actionType = ActionUpdate // deleted on disk: reinstall
+			case err != nil:
+				return nil, fmt.Errorf("no pude verificar la skill %q en disco: %w", a.SkillID, err)
+			case diskHash != a.Hash:
+				actionType = ActionUpdate // locally modified: repair
 			}
 		}
 

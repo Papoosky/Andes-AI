@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/andespath/andes-ai/internal/installer"
+	"github.com/andespath/andes-ai/internal/manifest"
 )
 
 func TestApplyCopiesSkills(t *testing.T) {
@@ -34,27 +35,132 @@ func TestApplyCopiesSkills(t *testing.T) {
 	}
 }
 
-func TestApplySkipDoesNotTouchDisk(t *testing.T) {
+func TestApplySkipReinstallsMissing(t *testing.T) {
 	src := makeCatalog(t)
+	cat := loadCat(t, src)
 	skillsDir := t.TempDir()
 
-	// A skip action for a skill NOT on disk: Apply must not create it,
-	// but must still return its manifest entry.
-	actions := []installer.Action{
-		{SkillID: "golang", Type: installer.ActionSkip, Profile: "tri", Hash: "sha256:x"},
+	// Plan yields skip because manifest hash matches catalog.
+	// But skill is NOT on disk: Apply must reinstall it.
+	actions, err := installer.Plan(src, cat, nil, []string{"tri"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Force actions to skip (simulate manifest already up-to-date).
+	for i := range actions {
+		actions[i].Type = installer.ActionSkip
+	}
+	// skillsDir is empty — golang dir does not exist.
+
+	installed, err := installer.Apply(src, actions, skillsDir)
+	if err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+
+	skillMD := filepath.Join(skillsDir, "golang", "SKILL.md")
+	if _, err := os.Stat(skillMD); err != nil {
+		t.Errorf("golang/SKILL.md should have been reinstalled, got: %v", err)
+	}
+	if installed["golang"].Hash == "" {
+		t.Errorf("installed[golang] hash should be non-empty, got %+v", installed["golang"])
+	}
+}
+
+func TestApplySkipRepairsModified(t *testing.T) {
+	src := makeCatalog(t)
+	cat := loadCat(t, src)
+	skillsDir := t.TempDir()
+
+	// First install.
+	actions, err := installer.Plan(src, cat, nil, []string{"tri"})
+	if err != nil {
+		t.Fatal(err)
 	}
 	installed, err := installer.Apply(src, actions, skillsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(skillsDir, "golang")); !os.IsNotExist(err) {
-		t.Error("skip no debería tocar el disco")
+
+	// Overwrite SKILL.md with junk.
+	skillMD := filepath.Join(skillsDir, "golang", "SKILL.md")
+	if err := os.WriteFile(skillMD, []byte("junk content"), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if installed["golang"].Hash != "sha256:x" {
-		t.Errorf("skip debe conservar la entrada del manifiesto, got %+v", installed["golang"])
+
+	// Re-run Plan with current manifest: hash matches catalog → skip.
+	mf := &manifest.Manifest{
+		Version:   1,
+		Installed: map[string]manifest.InstalledSkill{"golang": {Hash: installed["golang"].Hash, Profile: "tri"}},
 	}
-	if installed["golang"].Profile != "tri" {
-		t.Errorf("skip debe conservar el profile en el manifiesto, got %+v", installed["golang"])
+	actions2, err := installer.Plan(src, cat, mf, []string{"tri"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(actions2) != 1 || actions2[0].Type != installer.ActionSkip {
+		t.Fatalf("expected 1 skip action, got %+v", actions2)
+	}
+
+	// Apply: disk hash differs from catalog hash → should repair.
+	if _, err := installer.Apply(src, actions2, skillsDir); err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+
+	data, err := os.ReadFile(skillMD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) == "junk content" {
+		t.Error("SKILL.md should have been restored to catalog content, but still has junk")
+	}
+	if string(data) != "# golang" {
+		t.Errorf("SKILL.md content = %q, want %q", string(data), "# golang")
+	}
+}
+
+func TestApplySkipUntouchedWhenClean(t *testing.T) {
+	src := makeCatalog(t)
+	cat := loadCat(t, src)
+	skillsDir := t.TempDir()
+
+	// First install.
+	actions, err := installer.Plan(src, cat, nil, []string{"tri"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	installed, err := installer.Apply(src, actions, skillsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	skillMD := filepath.Join(skillsDir, "golang", "SKILL.md")
+	beforeBytes, err := os.ReadFile(skillMD)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Re-run Plan+Apply with matching manifest: disk is clean, should skip efficiently.
+	mf := &manifest.Manifest{
+		Version:   1,
+		Installed: map[string]manifest.InstalledSkill{"golang": {Hash: installed["golang"].Hash, Profile: "tri"}},
+	}
+	actions2, err := installer.Plan(src, cat, mf, []string{"tri"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	installed2, err := installer.Apply(src, actions2, skillsDir)
+	if err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+
+	afterBytes, err := os.ReadFile(skillMD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(afterBytes) != string(beforeBytes) {
+		t.Errorf("SKILL.md content changed on clean skip: before=%q after=%q", beforeBytes, afterBytes)
+	}
+	if installed2["golang"].Hash != installed["golang"].Hash {
+		t.Errorf("installed hash changed on clean skip: got %q", installed2["golang"].Hash)
 	}
 }
 
