@@ -15,17 +15,23 @@ import (
 func makeCatalog(t *testing.T) catalog.LocalDir {
 	t.Helper()
 	root := t.TempDir()
-	os.WriteFile(filepath.Join(root, "catalog.json"), []byte(`{
+	if err := os.WriteFile(filepath.Join(root, "catalog.json"), []byte(`{
 		"name": "andespath",
 		"profiles": {
 			"core": {"description": "base", "skills": ["git-conventions", "code-review"]},
 			"tri":  {"description": "tri",  "skills": ["golang"]}
 		}
-	}`), 0o644)
+	}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	for _, id := range []string{"git-conventions", "code-review", "golang"} {
 		dir := filepath.Join(root, "skills", id)
-		os.MkdirAll(dir, 0o755)
-		os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("# "+id), 0o644)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("# "+id), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return catalog.LocalDir{Root: root}
 }
@@ -86,6 +92,12 @@ func TestPlanIdempotentSkip(t *testing.T) {
 	if len(actions) != 1 || actions[0].Type != installer.ActionSkip {
 		t.Errorf("actions = %+v, want 1 skip", actions)
 	}
+	if actions[0].SkillID != "golang" {
+		t.Errorf("actions[0].SkillID = %q, want golang", actions[0].SkillID)
+	}
+	if actions[0].Hash == "" {
+		t.Error("actions[0].Hash is empty, want non-empty")
+	}
 }
 
 func TestPlanUpdateOnHashMismatch(t *testing.T) {
@@ -103,6 +115,9 @@ func TestPlanUpdateOnHashMismatch(t *testing.T) {
 	}
 	if len(actions) != 1 || actions[0].Type != installer.ActionUpdate {
 		t.Errorf("actions = %+v, want 1 update", actions)
+	}
+	if actions[0].Hash == "sha256:viejo" {
+		t.Error("actions[0].Hash must carry catalog-side hash, not stale manifest hash")
 	}
 }
 
