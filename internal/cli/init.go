@@ -45,8 +45,13 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 		catalogPath = prev.Catalog.Path
 	}
 	if catalogPath == "" {
-		// interactivo: Task 11
-		return errors.New("no sé dónde está el catálogo: pasá --catalog <ruta>")
+		if yes {
+			return errors.New("no sé dónde está el catálogo: pasá --catalog <ruta>")
+		}
+		catalogPath, err = promptCatalogPath()
+		if err != nil {
+			return err
+		}
 	}
 
 	src := catalog.LocalDir{Root: catalogPath}
@@ -60,8 +65,13 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 		profiles = prev.Profiles
 	}
 	if len(profiles) == 0 {
-		// interactivo: Task 11
-		return errors.New("no sé qué perfiles instalar: pasá --profiles a,b (corré `andes list` para verlos)")
+		if yes {
+			return errors.New("no sé qué perfiles instalar: pasá --profiles a,b (corré `andes list` para verlos)")
+		}
+		profiles, err = promptProfiles(cat)
+		if err != nil {
+			return err
+		}
 	}
 
 	actions, err := installer.Plan(src, cat, prev, profiles)
@@ -75,8 +85,14 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 	}
 
 	if !yes {
-		// interactivo: Task 11 (confirmación). Sin --yes hoy: abortar explícito.
-		return errors.New("confirmación interactiva no disponible todavía: re-corré con --yes")
+		ok, err := confirmPlan()
+		if err != nil {
+			return err
+		}
+		if !ok {
+			fmt.Fprintln(cmd.OutOrStdout(), "Abortado — no se tocó nada.")
+			return nil
+		}
 	}
 
 	sDir, err := skillsDir()
