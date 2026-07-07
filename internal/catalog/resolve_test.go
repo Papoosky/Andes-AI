@@ -43,6 +43,11 @@ func TestResolveSkills(t *testing.T) {
 			profiles: []string{"nope"},
 			wantErr:  `el perfil "nope" no existe`,
 		},
+		{
+			name:     "sin perfiles retorna mapa vacío",
+			profiles: nil,
+			want:     map[string]string{},
+		},
 	}
 
 	for _, tt := range tests {

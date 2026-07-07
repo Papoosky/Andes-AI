@@ -52,7 +52,9 @@ func TestLocalDirLoadErrors(t *testing.T) {
 			name: "json inválido",
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
-				os.WriteFile(filepath.Join(dir, "catalog.json"), []byte("{no es json"), 0o644)
+				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte("{no es json"), 0o644); err != nil {
+					t.Fatal(err)
+				}
 				return dir
 			},
 			wantErr: "catalog.json inválido",
@@ -61,10 +63,12 @@ func TestLocalDirLoadErrors(t *testing.T) {
 			name: "perfil referencia skill inexistente",
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
-				os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
+				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
 					"name": "x",
 					"profiles": {"p1": {"description": "d", "skills": ["fantasma"]}}
-				}`), 0o644)
+				}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
 				return dir
 			},
 			wantErr: "fantasma",

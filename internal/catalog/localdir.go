@@ -40,9 +40,11 @@ func (l LocalDir) validate(c *Catalog) error {
 	for name, p := range c.Profiles {
 		for _, id := range p.Skills {
 			skillMD := filepath.Join(l.SkillPath(id), "SKILL.md")
-			if _, err := os.Stat(skillMD); err != nil {
+			if _, err := os.Stat(skillMD); os.IsNotExist(err) {
 				problems = append(problems,
 					fmt.Sprintf("el perfil %q referencia la skill %q pero falta %s", name, id, skillMD))
+			} else if err != nil {
+				return fmt.Errorf("no pude verificar %s: %w", skillMD, err)
 			}
 		}
 	}
