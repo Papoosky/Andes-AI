@@ -37,14 +37,21 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 		return err
 	}
 
-	if catalogPath == "" && m != nil {
-		catalogPath = m.Catalog.Path
-	}
-	if catalogPath == "" {
+	var src catalog.Source
+	if catalogPath != "" {
+		// Flag wins: explicit --catalog path.
+		src = catalog.LocalDir{Root: catalogPath}
+	} else if m != nil {
+		// Resolve from manifest type.
+		dir, err := mirrorDir()
+		if err != nil {
+			return err
+		}
+		src = catalog.SourceFromManifest(m, dir)
+	} else {
 		return errors.New("catalog location unknown: pass --catalog <path> or run `andes init` first")
 	}
 
-	src := catalog.LocalDir{Root: catalogPath}
 	cat, err := src.Load()
 	if err != nil {
 		return err

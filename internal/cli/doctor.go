@@ -33,16 +33,12 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		return errors.New("no manifest found: you have not run `andes init` yet")
 	}
 
-	var src catalog.Source
-	if m.Catalog.Type == "git" {
-		dir, err := mirrorDir()
-		if err != nil {
-			return err
-		}
-		src = catalog.GitRepo{URL: m.Catalog.URL, Dir: dir}
-	} else {
-		src = catalog.LocalDir{Root: m.Catalog.Path}
+	dir, err := mirrorDir()
+	if err != nil {
+		return err
 	}
+	src := catalog.SourceFromManifest(m, dir)
+
 	if _, err := src.Load(); err != nil {
 		loc := m.Catalog.Path
 		if m.Catalog.Type == "git" {
