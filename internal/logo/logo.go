@@ -1,9 +1,4 @@
-package tui
-
-// logo.go holds the braille mountain silhouette and gradient renderer.
-// This is intentionally a local copy of the same data in internal/cli/logo.go
-// so that internal/tui does NOT import internal/cli — keeping the import
-// graph acyclic: cli → tui is allowed; tui → cli is not.
+package logo
 
 import (
 	"strings"
@@ -11,6 +6,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// logoLines holds the braille mountain-range silhouette.
+// Generated from a 70×20 bitmap (braille: 2×4 dots per char).
+// Peaks: one tall off-center-left, two smaller peaks right.
+// Lines are stored trimmed (no trailing blank braille); centering is
+// applied at render time against the banner's inner width.
 var logoLines = []string{
 	"⠀⠀⠀⠀⠀⠀⠀⠀⢀⣄",
 	"⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⣠⡀⠀⠀⠀⢀⣄",
@@ -19,17 +19,21 @@ var logoLines = []string{
 	"⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
 }
 
+// gradientColors defines the Andean cold palette applied top-to-bottom.
+// Band assignment: row 0 = snow-white, rows 1-2 = ice, row 3 = deep-blue, row 4 = slate.
 var gradientColors = []string{
-	"#e0def4", // snow white  — top peak
+	"#e0def4", // snow white  — top peak / sky
 	"#9ccfd8", // ice blue    — upper slopes
 	"#9ccfd8", // ice blue    — mid slopes
 	"#31748f", // deep blue   — lower slopes
-	"#6e6a86", // slate       — base
+	"#6e6a86", // slate       — base / foothills
 }
 
-// renderLogo applies a top-to-bottom gradient over the braille logo and
-// centers the block within the given width.
-func renderLogo(width int) string {
+// Render applies a top-to-bottom gradient over the braille logo rows and
+// centers the logo BLOCK within the given width. The block is centered as a
+// unit (uniform left pad for every row) — centering rows individually would
+// distort the silhouette.
+func Render(width int) string {
 	maxW := 0
 	for _, line := range logoLines {
 		if w := lipgloss.Width(line); w > maxW {

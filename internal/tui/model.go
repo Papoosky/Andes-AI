@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/andespath/andes-ai/internal/logo"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -238,8 +239,8 @@ func (m Model) viewMenu() string {
 
 	var sb strings.Builder
 
-	// Logo rendered inline using the shared logo data in this package.
-	sb.WriteString(renderLogo(40))
+	// Logo rendered from the shared logo package.
+	sb.WriteString(logo.Render(40))
 
 	// Title.
 	sb.WriteString(bold.Render("andes"))
@@ -294,7 +295,7 @@ func (m Model) viewOutput() string {
 // cobra root command, used for in-process command execution.
 // cli imports tui, so tui MUST NOT import cli at the package level for
 // NewRootCmd — the factory is passed in, breaking any import cycle.
-// (tui does import cli for RenderLogo; cli does NOT import tui.)
+// Both cli and tui import internal/logo (leaf package); neither imports the other.
 func Run(newRoot func() *cobra.Command) error {
 	p := tea.NewProgram(New(newRoot), tea.WithAltScreen())
 	_, err := p.Run()

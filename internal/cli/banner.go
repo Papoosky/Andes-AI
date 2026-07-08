@@ -3,6 +3,7 @@ package cli
 import (
 	"strings"
 
+	"github.com/andespath/andes-ai/internal/logo"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -45,8 +46,8 @@ func renderBanner() string {
 
 	var sb strings.Builder
 
-	// Logo (gradient applied inside RenderLogo), centered, blank line below
-	sb.WriteString(RenderLogo(innerWidth))
+	// Logo (gradient applied inside logo.Render), centered, blank line below
+	sb.WriteString(logo.Render(innerWidth))
 	sb.WriteRune('\n')
 
 	// Title line
