@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
@@ -294,4 +295,44 @@ func TestMenuAndOutputAreFramed(t *testing.T) {
 	if !strings.Contains(outputView, doubleBorderCorner) {
 		t.Errorf("ScreenOutput View() missing DoubleBorder corner rune %q", doubleBorderCorner)
 	}
+}
+
+// TestBoxWidthStableAcrossScreens verifies that both ScreenMenu and ScreenOutput
+// render boxes of the same width after a WindowSizeMsg. This ensures the bordered
+// rectangle doesn't resize when navigating between screens.
+func TestBoxWidthStableAcrossScreens(t *testing.T) {
+	// Create a model and size it to 80x24.
+	m := New(nil, nil)
+	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = sized.(Model)
+
+	// Render ScreenMenu.
+	menuView := m.View()
+	menuWidth := lipgloss.Width(menuView)
+
+	// Switch to ScreenOutput via a cmdResultMsg.
+	switched, _ := m.Update(cmdResultMsg{cmdID: "list", output: "test output\n"})
+	m = switched.(Model)
+
+	// Render ScreenOutput.
+	outputView := m.View()
+	outputWidth := lipgloss.Width(outputView)
+
+	// Both screens must render to the same width (80 cols in this case).
+	if menuWidth != outputWidth {
+		t.Errorf("box width mismatch: ScreenMenu=%d cols, ScreenOutput=%d cols, expected both=%d",
+			menuWidth, outputWidth, 80)
+	}
+
+	if menuWidth != 80 {
+		t.Errorf("ScreenMenu box width: got %d, expected 80", menuWidth)
+	}
+
+	if outputWidth != 80 {
+		t.Errorf("ScreenOutput box width: got %d, expected 80", outputWidth)
+	}
+
+	t.Logf("Both screens render stable 80-col box ✓\n")
+	t.Logf("ScreenMenu (first 3 lines):\n%s\n", strings.Join(strings.Split(menuView, "\n")[:3], "\n"))
+	t.Logf("ScreenOutput (first 3 lines):\n%s\n", strings.Join(strings.Split(outputView, "\n")[:3], "\n"))
 }
