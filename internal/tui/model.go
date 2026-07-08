@@ -62,6 +62,16 @@ type cmdResultMsg struct {
 	err    error
 }
 
+// FreshnessMsg reports the async catalog freshness check result.
+type FreshnessMsg struct {
+	Outdated bool
+	Offline  bool
+}
+
+// UpdateCheck is injected by the caller (cli) so tui stays decoupled from
+// manifest/git specifics and tests can fake it.
+type UpdateCheck func() FreshnessMsg
+
 // ── Model ──────────────────────────────────────────────────────────────────
 
 // Model holds all TUI state. newRoot is a factory used to build a fresh
@@ -73,29 +83,37 @@ type Model struct {
 	cursor   int
 	options  []menuOption
 	newRoot  func() *cobra.Command
+	check    UpdateCheck
 	vp       viewport.Model
 	cmdTitle string
 	width    int
 	height   int
+	outdated bool
+	offline  bool
 }
 
 // New builds a Model ready to run.
-func New(newRoot func() *cobra.Command) Model {
+func New(newRoot func() *cobra.Command, check UpdateCheck) Model {
 	vp := viewport.New(80, 20)
 	return Model{
 		screen:  ScreenMenu,
 		cursor:  0,
 		options: defaultOptions(),
 		newRoot: newRoot,
+		check:   check,
 		vp:      vp,
 		width:   80,
 		height:  24,
 	}
 }
 
-// Init satisfies tea.Model; no I/O at startup.
+// Init satisfies tea.Model; fires the async freshness check if provided.
 func (m Model) Init() tea.Cmd {
-	return nil
+	if m.check == nil {
+		return nil
+	}
+	check := m.check
+	return func() tea.Msg { return check() }
 }
 
 // ── Update ─────────────────────────────────────────────────────────────────
@@ -110,8 +128,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.vp.Height = msg.Height - 4 // leave room for header/footer
 		return m, nil
 
+	case FreshnessMsg:
+		m.outdated = msg.Outdated
+		m.offline = msg.Offline
+		return m, nil
+
 	case cmdResultMsg:
 		// Async result arrived — switch to output screen.
+		if msg.cmdID == "update" {
+			m.outdated = false
+		}
 		out := msg.output
 		if msg.err != nil {
 			out = strings.TrimRight(out, "\n") + "\n" + msg.err.Error()
@@ -152,6 +178,12 @@ func (m Model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case msg.Type == tea.KeyCtrlC || (msg.Type == tea.KeyRunes && string(msg.Runes) == "q"):
 		return m, tea.Quit
+
+	case msg.Type == tea.KeyRunes && string(msg.Runes) == "u":
+		if !m.outdated {
+			return m, nil
+		}
+		return m.runInProcess("update", "--yes")
 	}
 	return m, nil
 }
@@ -168,6 +200,28 @@ func (m Model) updateOutput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.vp, cmd = m.vp.Update(msg)
 	return m, cmd
+}
+
+// runInProcess executes a subcommand with captured output, async.
+func (m Model) runInProcess(args ...string) (tea.Model, tea.Cmd) {
+	newRoot := m.newRoot
+	cmdID := args[0]
+	return m, func() tea.Msg {
+		var buf bytes.Buffer
+		root := newRoot()
+		root.SetArgs(args)
+		root.SetOut(&buf)
+		root.SetErr(&buf)
+		execErr := root.Execute()
+		output := buf.String()
+		if execErr != nil {
+			if output != "" && !strings.HasSuffix(output, "\n") {
+				output += "\n"
+			}
+			output += execErr.Error()
+		}
+		return cmdResultMsg{cmdID: cmdID, output: output, err: nil}
+	}
 }
 
 // selectOption handles Enter on the menu.
@@ -195,26 +249,7 @@ func (m Model) selectOption() (tea.Model, tea.Cmd) {
 		)
 
 	case "list", "doctor":
-		// Run in-process, async.
-		newRoot := m.newRoot
-		cmdID := opt.id
-		return m, func() tea.Msg {
-			var buf bytes.Buffer
-			root := newRoot()
-			root.SetArgs([]string{cmdID})
-			root.SetOut(&buf)
-			root.SetErr(&buf)
-			execErr := root.Execute()
-			output := buf.String()
-			if execErr != nil {
-				// Append the error string so it appears in the output pane.
-				if output != "" && !strings.HasSuffix(output, "\n") {
-					output += "\n"
-				}
-				output += execErr.Error()
-			}
-			return cmdResultMsg{cmdID: cmdID, output: output, err: nil}
-		}
+		return m.runInProcess(opt.id)
 	}
 
 	return m, nil
@@ -236,6 +271,7 @@ func (m Model) viewMenu() string {
 	bold := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorSnow))
 	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(colorSlate))
 	selected := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorIce))
+	warn := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#f6c177"))
 
 	var sb strings.Builder
 
@@ -246,6 +282,12 @@ func (m Model) viewMenu() string {
 	sb.WriteString(bold.Render("andes"))
 	sb.WriteString(muted.Render(" — andespath skills, one command"))
 	sb.WriteString("\n\n")
+
+	// Freshness banner (shown when catalog is outdated).
+	if m.outdated {
+		sb.WriteString(warn.Render("⚠ catalog updated — press u to update"))
+		sb.WriteString("\n\n")
+	}
 
 	// Menu items.
 	for i, opt := range m.options {
@@ -262,7 +304,11 @@ func (m Model) viewMenu() string {
 	}
 
 	sb.WriteRune('\n')
-	sb.WriteString(muted.Render("↑/k ↓/j: navigate • enter: select • q: quit"))
+	footer := "↑/k ↓/j: navigate • enter: select • q: quit"
+	if m.offline {
+		footer += " • offline"
+	}
+	sb.WriteString(muted.Render(footer))
 	sb.WriteRune('\n')
 
 	return sb.String()
@@ -293,11 +339,12 @@ func (m Model) viewOutput() string {
 
 // Run starts the Bubbletea program. newRoot is a factory for a fresh
 // cobra root command, used for in-process command execution.
+// check is an optional async freshness probe; pass nil to skip it.
 // cli imports tui, so tui MUST NOT import cli at the package level for
 // NewRootCmd — the factory is passed in, breaking any import cycle.
 // Both cli and tui import internal/logo (leaf package); neither imports the other.
-func Run(newRoot func() *cobra.Command) error {
-	p := tea.NewProgram(New(newRoot), tea.WithAltScreen())
+func Run(newRoot func() *cobra.Command, check UpdateCheck) error {
+	p := tea.NewProgram(New(newRoot, check), tea.WithAltScreen())
 	_, err := p.Run()
 	return err
 }

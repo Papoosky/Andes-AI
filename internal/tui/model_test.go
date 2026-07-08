@@ -1,18 +1,16 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
 )
 
 // helper: build a fresh model at ScreenMenu.
 func newTestModel() Model {
-	return Model{
-		screen:  ScreenMenu,
-		cursor:  0,
-		options: defaultOptions(),
-	}
+	return New(nil, nil)
 }
 
 // helper: send a key rune message.
@@ -205,5 +203,55 @@ func TestQuit_onOutput(t *testing.T) {
 	msg := cmd()
 	if _, ok := msg.(tea.QuitMsg); !ok {
 		t.Errorf("q on ScreenOutput should produce tea.QuitMsg, got %T", msg)
+	}
+}
+
+// ── Freshness banner and u-key ─────────────────────────────────────────────
+
+func TestFreshnessOutdatedShowsBanner(t *testing.T) {
+	m := New(nil, nil)
+	updated, _ := m.Update(FreshnessMsg{Outdated: true})
+	mm := updated.(Model)
+	if !strings.Contains(mm.View(), "press u to update") {
+		t.Errorf("banner missing from view:\n%s", mm.View())
+	}
+}
+
+func TestFreshnessOfflineShowsFooterNote(t *testing.T) {
+	m := New(nil, nil)
+	updated, _ := m.Update(FreshnessMsg{Offline: true})
+	mm := updated.(Model)
+	if !strings.Contains(mm.View(), "offline") {
+		t.Errorf("offline note missing:\n%s", mm.View())
+	}
+}
+
+func TestPressUWithoutUpdateAvailableDoesNothing(t *testing.T) {
+	m := New(nil, nil)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
+	if cmd != nil {
+		t.Error("u without update available should be a no-op")
+	}
+}
+
+func TestPressUWithUpdateAvailableRunsUpdate(t *testing.T) {
+	m := New(func() *cobra.Command { return &cobra.Command{Use: "andes"} }, nil)
+	updated, _ := m.Update(FreshnessMsg{Outdated: true})
+	mm := updated.(Model)
+	_, cmd := mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
+	if cmd == nil {
+		t.Fatal("u with update available should dispatch the update command")
+	}
+}
+
+func TestCmdResultClearsUpdateBanner(t *testing.T) {
+	m := New(nil, nil)
+	updated, _ := m.Update(FreshnessMsg{Outdated: true})
+	updated, _ = updated.(Model).Update(cmdResultMsg{cmdID: "update", output: "done"})
+	mm := updated.(Model)
+	// Back on menu after esc: banner must be gone.
+	updated, _ = mm.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	if strings.Contains(updated.(Model).View(), "press u to update") {
+		t.Error("banner should clear after an update run")
 	}
 }
