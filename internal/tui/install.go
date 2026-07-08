@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -12,9 +13,14 @@ import (
 
 // enterCatalogScreen sets up the catalog text input and returns the model plus
 // a blink command so the cursor starts blinking immediately.
+// Preserves any previously typed value across error round-trips (Minor 8).
 func enterCatalogScreen(m Model) (Model, tea.Cmd) {
+	prev := m.catInput.Value()
 	ti := textinput.New()
 	ti.Placeholder = "git URL or local path"
+	if prev != "" {
+		ti.SetValue(prev)
+	}
 	ti.Focus()
 	m.catInput = ti
 	m.screen = ScreenInstallCatalog
@@ -38,6 +44,14 @@ type installProfilesMsg struct {
 type installDoneMsg struct {
 	summary string
 	err     error
+}
+
+// planDoneMsg carries the result of a plan preview computation.
+type planDoneMsg struct {
+	install   int
+	update    int
+	unchanged int
+	err       error
 }
 
 // ── Entry: startInstall ────────────────────────────────────────────────────
@@ -74,6 +88,8 @@ func (m Model) handleInstallProfilesMsg(msg installProfilesMsg) (tea.Model, tea.
 		// Fall back to catalog input so the user can provide a path.
 		return enterCatalogScreen(m)
 	}
+	// Clear any previous error on successful load (Minor 7).
+	m.installErr = nil
 
 	// Sort names for stable ordering.
 	names := make([]string, len(msg.names))
@@ -144,8 +160,7 @@ func (m Model) updateInstallProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case msg.Type == tea.KeyEnter:
-		// Collect selected profiles and transition to plan screen (Task 3
-		// fills the actual apply logic; here we just store the selection).
+		// Collect selected profiles and transition to plan screen.
 		selected := make([]string, 0, len(m.profiles))
 		for _, n := range m.profiles {
 			if m.profileChecked[n] {
@@ -154,6 +169,16 @@ func (m Model) updateInstallProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.selectedProfiles = selected
 		m.screen = ScreenInstallPlan
+		// Dispatch plan preview (Important 5).
+		if m.planInstall != nil && len(selected) > 0 {
+			pf := m.planInstall
+			override := m.catalogOverride
+			profiles := selected
+			return m, func() tea.Msg {
+				inst, upd, unch, err := pf(override, profiles)
+				return planDoneMsg{install: inst, update: upd, unchanged: unch, err: err}
+			}
+		}
 
 	case msg.Type == tea.KeyEsc:
 		m.screen = ScreenMenu
@@ -214,6 +239,8 @@ func (m Model) updateInstallCatalog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if path == "" {
 			return m, nil
 		}
+		// Store the override so applyInstall can use it (Critical 1).
+		m.catalogOverride = path
 		// Re-run catalogProfiles with the typed path so the real catalog is
 		// loaded. The result drives advancement: if the path resolves to a valid
 		// catalog, catalogKnown=true and real profiles are returned → the
@@ -235,15 +262,18 @@ func (m Model) updateInstallCatalog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case msg.Type == tea.KeyCtrlC:
+		// Only CtrlC quits from the catalog screen (Critical 2: 'q' must be typeable in paths).
+		return m, tea.Quit
+
 	case msg.Type == tea.KeyEsc:
+		// Esc cancels back to menu; clear error (Minor 7).
+		m.installErr = nil
 		m.screen = ScreenMenu
 		return m, nil
-
-	case msg.Type == tea.KeyCtrlC || (msg.Type == tea.KeyRunes && string(msg.Runes) == "q"):
-		return m, tea.Quit
 	}
 
-	// Let textinput handle everything else.
+	// ALL other keys (including runes like 'q') go to the text input (Critical 2).
 	var cmd tea.Cmd
 	m.catInput, cmd = m.catInput.Update(msg)
 	return m, cmd
@@ -283,10 +313,20 @@ func (m Model) updateInstallPlan(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.applyInstall == nil {
 			return m, nil
 		}
+		// No profiles selected — disable apply (Minor 9).
+		if len(m.selectedProfiles) == 0 {
+			return m, nil
+		}
+		// In-flight guard: ignore additional enters while applying (Important 4).
+		if m.installing {
+			return m, nil
+		}
+		m.installing = true
 		apply := m.applyInstall
+		override := m.catalogOverride
 		profiles := m.selectedProfiles
 		return m, func() tea.Msg {
-			summary, err := apply(profiles)
+			summary, err := apply(override, profiles)
 			return installDoneMsg{summary: summary, err: err}
 		}
 
@@ -309,17 +349,31 @@ func (m Model) viewInstallPlan() string {
 
 	if len(m.selectedProfiles) == 0 {
 		sb.WriteString(muted.Render("No profiles selected."))
-	} else {
-		sb.WriteString(muted.Render("Selected profiles:"))
-		sb.WriteString("\n")
-		for _, p := range m.selectedProfiles {
-			sb.WriteString(muted.Render("  • " + p))
-			sb.WriteRune('\n')
-		}
+		sb.WriteString("\n\n")
+		sb.WriteString(muted.Render("esc: back"))
+		return theme.Frame().Render(sb.String())
 	}
 
+	sb.WriteString(muted.Render("Selected profiles:"))
 	sb.WriteString("\n")
-	sb.WriteString(muted.Render("enter: apply • esc: back"))
+	for _, p := range m.selectedProfiles {
+		sb.WriteString(muted.Render("  • " + p))
+		sb.WriteRune('\n')
+	}
+
+	// Show plan counts if available (Important 5).
+	if m.planInstallCount+m.planUpdateCount+m.planUnchangedCnt > 0 || m.planInstallCount == 0 {
+		sb.WriteString("\n")
+		sb.WriteString(muted.Render(fmt.Sprintf("%d to install, %d to update, %d unchanged",
+			m.planInstallCount, m.planUpdateCount, m.planUnchangedCnt)))
+	}
+
+	sb.WriteString("\n\n")
+	if m.installing {
+		sb.WriteString(bold.Render("Applying…"))
+	} else {
+		sb.WriteString(muted.Render("enter: apply • esc: back"))
+	}
 
 	return theme.Frame().Render(sb.String())
 }

@@ -74,12 +74,19 @@ type UpdateCheck func() FreshnessMsg
 // flow can skip the catalog-input screen).
 type CatalogProfilesFunc func(catalogOverride string) (names []string, descs map[string]string, installed []string, catalogKnown bool, err error)
 
-// ApplyInstallFunc is injected from cli. It resolves the catalog source,
-// plans and applies the install in-process (no confirmation prompts — the
-// TUI plan screen already confirmed), saves the manifest, and returns a
-// human-readable summary ("✓ N skills up to date" or "Everything is already
-// up to date"). tui never imports cli; the func value is injected.
-type ApplyInstallFunc func(profiles []string) (summary string, err error)
+// ApplyInstallFunc is injected from cli. It resolves the catalog source
+// (using catalogOverride if non-empty, otherwise manifest/default), plans and
+// applies the install in-process (no confirmation prompts — the TUI plan
+// screen already confirmed), saves the manifest, and returns a human-readable
+// summary ("✓ N skills up to date" or "Everything is already up to date").
+// tui never imports cli; the func value is injected.
+type ApplyInstallFunc func(catalogOverride string, profiles []string) (summary string, err error)
+
+// PlanInstallFunc is injected from cli. It resolves the catalog source and
+// runs installer.Plan without applying — used to compute preview counts shown
+// on the plan screen before the user confirms. Returns (install, update,
+// unchanged, err).
+type PlanInstallFunc func(catalogOverride string, profiles []string) (install, update, unchanged int, err error)
 
 // Model holds all TUI state. newRoot is a factory used to build a fresh
 // cobra command for in-process execution — this breaks the cli→tui import
@@ -100,6 +107,7 @@ type Model struct {
 
 	// install-flow fields
 	catalogProfiles  CatalogProfilesFunc
+	planInstall      PlanInstallFunc
 	applyInstall     ApplyInstallFunc
 	catInput         textinput.Model
 	profiles         []string
@@ -107,13 +115,18 @@ type Model struct {
 	profileChecked   map[string]bool
 	profileCursor    int
 	selectedProfiles []string
+	catalogOverride  string
+	installing       bool
+	planInstallCount int
+	planUpdateCount  int
+	planUnchangedCnt int
 	installErr       error
 }
 
 // New builds a Model ready to run.
-// catalogProfiles and applyInstall are optional injected callbacks; pass nil
-// in tests that inject messages directly.
-func New(newRoot func() *cobra.Command, check UpdateCheck, catalogProfiles CatalogProfilesFunc, applyInstall ApplyInstallFunc) Model {
+// catalogProfiles, planInstall, and applyInstall are optional injected
+// callbacks; pass nil in tests that inject messages directly.
+func New(newRoot func() *cobra.Command, check UpdateCheck, catalogProfiles CatalogProfilesFunc, planInstall PlanInstallFunc, applyInstall ApplyInstallFunc) Model {
 	vp := viewport.New(80, 20)
 	return Model{
 		screen:          ScreenMenu,
@@ -125,6 +138,7 @@ func New(newRoot func() *cobra.Command, check UpdateCheck, catalogProfiles Catal
 		width:           80,
 		height:          24,
 		catalogProfiles: catalogProfiles,
+		planInstall:     planInstall,
 		applyInstall:    applyInstall,
 	}
 }
@@ -185,7 +199,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case installProfilesMsg:
 		return m.handleInstallProfilesMsg(msg)
 
+	case planDoneMsg:
+		if msg.err == nil {
+			m.planInstallCount = msg.install
+			m.planUpdateCount = msg.update
+			m.planUnchangedCnt = msg.unchanged
+		}
+		return m, nil
+
 	case installDoneMsg:
+		m.installing = false
 		return m.handleInstallDoneMsg(msg)
 
 	case tea.KeyMsg:
@@ -443,12 +466,12 @@ func (m Model) viewOutput() string {
 // Run starts the Bubbletea program. newRoot is a factory for a fresh
 // cobra root command, used for in-process command execution.
 // check is an optional async freshness probe; pass nil to skip it.
-// catalogProfiles and applyInstall are optional injected callbacks for the
-// install flow. cli imports tui, so tui MUST NOT import cli at the package
-// level — all dependencies are injected.
+// catalogProfiles, planInstall, and applyInstall are optional injected
+// callbacks for the install flow. cli imports tui, so tui MUST NOT import cli
+// at the package level — all dependencies are injected.
 // Both cli and tui import internal/logo (leaf package); neither imports the other.
-func Run(newRoot func() *cobra.Command, check UpdateCheck, catalogProfiles CatalogProfilesFunc, applyInstall ApplyInstallFunc) error {
-	p := tea.NewProgram(New(newRoot, check, catalogProfiles, applyInstall), tea.WithAltScreen())
+func Run(newRoot func() *cobra.Command, check UpdateCheck, catalogProfiles CatalogProfilesFunc, planInstall PlanInstallFunc, applyInstall ApplyInstallFunc) error {
+	p := tea.NewProgram(New(newRoot, check, catalogProfiles, planInstall, applyInstall), tea.WithAltScreen())
 	_, err := p.Run()
 	return err
 }

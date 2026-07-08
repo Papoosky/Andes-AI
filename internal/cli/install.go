@@ -91,11 +91,9 @@ func installAndSave(cmd *cobra.Command, src catalog.Source, cat *catalog.Catalog
 	}
 
 	// If plan shows no installs or updates, skip confirmation and the plan display.
-	// Note: Apply will still run (it repairs locally modified skills even if Plan marked them skip),
-	// but we won't bother asking for confirmation.
+	// Apply still runs (it repairs locally modified skills even if Plan marked them skip).
 	if changeCount == 0 {
 		fmt.Fprintln(cmd.OutOrStdout(), "Everything is already up to date.")
-		// Skip straight to Apply (it will check disk state and repair if needed)
 	} else {
 		fmt.Fprintln(cmd.OutOrStdout(), "Plan:")
 		for _, a := range actions {
@@ -114,33 +112,14 @@ func installAndSave(cmd *cobra.Command, src catalog.Source, cat *catalog.Catalog
 		}
 	}
 
-	sDir, err := skillsDir()
+	installed, summary, err := applyActions(src, actions, prev, profiles, catRef)
 	if err != nil {
 		return err
 	}
-	installed, err := installer.Apply(src, actions, sDir)
-	if err != nil {
-		return err
-	}
+	_ = installed
 
-	catRef, err = finalizeRef(src, catRef)
-	if err != nil {
-		return err
+	if changeCount > 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), summary)
 	}
-	next := &manifest.Manifest{
-		Version:   1,
-		Catalog:   catRef,
-		Profiles:  profiles,
-		Installed: installed,
-	}
-	mPath, err := manifest.DefaultPath()
-	if err != nil {
-		return err
-	}
-	if err := next.Save(mPath); err != nil {
-		return err
-	}
-
-	fmt.Fprintf(cmd.OutOrStdout(), "✓ %d skills up to date in %s\n", len(installed), sDir)
 	return nil
 }

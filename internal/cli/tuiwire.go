@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/andespath/andes-ai/internal/installer"
 	"github.com/andespath/andes-ai/internal/manifest"
 	"github.com/andespath/andes-ai/internal/tui"
@@ -14,7 +12,7 @@ import (
 // returns a human-readable summary. It is injected into tui.Model so that
 // tui stays decoupled from cli.
 func buildApplyInstallFunc() tui.ApplyInstallFunc {
-	return func(profiles []string) (string, error) {
+	return func(catalogOverride string, profiles []string) (string, error) {
 		mPath, err := manifest.DefaultPath()
 		if err != nil {
 			return "", err
@@ -24,9 +22,8 @@ func buildApplyInstallFunc() tui.ApplyInstallFunc {
 			return "", err
 		}
 
-		// Resolve catalog source using the same precedence as runInstall:
-		// manifest → baked default → error (no interactive prompt in TUI path).
-		src, catRef, err := resolveSource("", prev, true)
+		// Resolve catalog source: user-typed override → manifest → baked default → error.
+		src, catRef, err := resolveSource(catalogOverride, prev, true)
 		if err != nil {
 			return "", err
 		}
@@ -49,34 +46,62 @@ func buildApplyInstallFunc() tui.ApplyInstallFunc {
 			}
 		}
 
+		_, summary, err := applyActions(src, actions, prev, profiles, catRef)
+		if err != nil {
+			return "", err
+		}
+
 		if changeCount == 0 {
 			return "Everything is already up to date.", nil
 		}
-
-		sDir, err := skillsDir()
-		if err != nil {
-			return "", err
-		}
-		installed, err := installer.Apply(src, actions, sDir)
-		if err != nil {
-			return "", err
-		}
-
-		catRef, err = finalizeRef(src, catRef)
-		if err != nil {
-			return "", err
-		}
-
-		next := &manifest.Manifest{
-			Version:   1,
-			Catalog:   catRef,
-			Profiles:  profiles,
-			Installed: installed,
-		}
-		if err := next.Save(mPath); err != nil {
-			return "", err
-		}
-
-		return fmt.Sprintf("✓ %d skills up to date in %s", len(installed), sDir), nil
+		return summary, nil
 	}
+}
+
+// buildPlanInstallFunc returns a tui.PlanInstallFunc that resolves the catalog
+// source and runs installer.Plan without applying — used to show counts on the
+// plan screen before the user confirms.
+func buildPlanInstallFunc() tui.PlanInstallFunc {
+	return func(catalogOverride string, profiles []string) (install, update, unchanged int, err error) {
+		mPath, err := manifest.DefaultPath()
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		prev, err := manifest.Load(mPath)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		src, _, err := resolveSource(catalogOverride, prev, true)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		cat, err := src.Load()
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		actions, err := installer.Plan(src, cat, prev, profiles)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		for _, a := range actions {
+			switch a.Type {
+			case installer.ActionInstall:
+				install++
+			case installer.ActionUpdate:
+				update++
+			default:
+				unchanged++
+			}
+		}
+		return install, update, unchanged, nil
+	}
+}
+
+// buildCallbacks wires all TUI callbacks from real CLI implementations.
+func buildCallbacks() (tui.CatalogProfilesFunc, tui.PlanInstallFunc, tui.ApplyInstallFunc) {
+	return buildCatalogProfilesFunc(), buildPlanInstallFunc(), buildApplyInstallFunc()
 }

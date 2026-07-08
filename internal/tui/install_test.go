@@ -18,7 +18,7 @@ func TestCatalogInputThreadsPathToFunc(t *testing.T) {
 		return []string{"test-profile"}, map[string]string{"test-profile": "desc"}, nil, true, nil
 	}
 
-	m := New(nil, nil, fakeCatalogProfiles, nil)
+	m := New(nil, nil, fakeCatalogProfiles, nil, nil)
 	m.screen = ScreenInstallCatalog
 	// Simulate the textinput having a value — set it directly.
 	ti := m.catInput
@@ -43,8 +43,11 @@ func TestCatalogInputThreadsPathToFunc(t *testing.T) {
 
 func TestInstallPlanConfirmRunsApply(t *testing.T) {
 	called := false
-	m := New(func() *cobra.Command { return &cobra.Command{Use: "andes"} }, nil, nil, nil)
-	m.applyInstall = func(profiles []string) (string, error) { called = true; return "✓ 1 skill up to date", nil }
+	m := New(func() *cobra.Command { return &cobra.Command{Use: "andes"} }, nil, nil, nil, nil)
+	m.applyInstall = func(catalogOverride string, profiles []string) (string, error) {
+		called = true
+		return "✓ 1 skill up to date", nil
+	}
 	// jump to plan screen with a selection
 	m.screen = ScreenInstallPlan
 	m.selectedProfiles = []string{"tri-fleet"}
@@ -59,7 +62,7 @@ func TestInstallPlanConfirmRunsApply(t *testing.T) {
 }
 
 func TestInstallDoneShowsOutput(t *testing.T) {
-	m := New(nil, nil, nil, nil)
+	m := New(nil, nil, nil, nil, nil)
 	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	m = sized.(Model)
 	m2, _ := m.Update(installDoneMsg{summary: "✓ 2 skills up to date"})
@@ -74,7 +77,7 @@ func TestInstallDoneShowsOutput(t *testing.T) {
 
 func modelWithProfiles(t *testing.T) Model {
 	t.Helper()
-	m := New(nil, nil, nil, nil)
+	m := New(nil, nil, nil, nil, nil)
 	m2, _ := m.Update(installProfilesMsg{
 		names:        []string{"andespath-core", "tri-fleet"},
 		descs:        map[string]string{"andespath-core": "base", "tri-fleet": "TRI"},
@@ -134,6 +137,88 @@ func TestInstallProfilesViewIsFramed(t *testing.T) {
 	m = m2.(Model)
 	if got := m.View(); !contains(got, "╔") || !contains(got, "[x]") {
 		t.Errorf("profiles view must be framed and show checkboxes:\n%s", got)
+	}
+}
+
+// TestCatalogQRuneDoesNotQuit verifies Critical 2: typing 'q' on the catalog
+// input screen must NOT quit the app — it must go to the text input instead.
+func TestCatalogQRuneDoesNotQuit(t *testing.T) {
+	// Reach catalog screen via the normal installProfilesMsg path (catalogKnown=false).
+	m := New(nil, nil, nil, nil, nil)
+	m2, _ := m.Update(installProfilesMsg{catalogKnown: false})
+	mm := m2.(Model)
+	if mm.screen != ScreenInstallCatalog {
+		t.Fatalf("expected ScreenInstallCatalog, got %v", mm.screen)
+	}
+
+	_, cmd := mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	if cmd == nil {
+		// textinput returned nil cmd — fine, as long as the screen didn't change.
+		if mm.screen != ScreenInstallCatalog {
+			t.Error("typing 'q' changed screen away from catalog")
+		}
+		return
+	}
+	msg := cmd()
+	if _, ok := msg.(tea.QuitMsg); ok {
+		t.Error("typing 'q' on catalog screen must not produce tea.QuitMsg")
+	}
+}
+
+// TestCatalogPathWithQ verifies Critical 2 extended: a full path containing
+// 'q' is correctly captured (not cut short by a quit).
+func TestCatalogPathWithQ(t *testing.T) {
+	m := New(nil, nil, nil, nil, nil)
+	m2, _ := m.Update(installProfilesMsg{catalogKnown: false})
+	mm := m2.(Model)
+	if mm.screen != ScreenInstallCatalog {
+		t.Fatalf("expected ScreenInstallCatalog, got %v", mm.screen)
+	}
+
+	// Type each rune of the path "/tmp/qcatalog/q-path".
+	// We verify that the screen stays on ScreenInstallCatalog for every rune.
+	path := "/tmp/qcatalog/q-path"
+	cur := mm
+	for _, r := range path {
+		m3, _ := cur.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		cur = m3.(Model)
+		if cur.screen != ScreenInstallCatalog {
+			t.Fatalf("screen changed to %v after typing rune %q — q must not quit", cur.screen, r)
+		}
+	}
+}
+
+// TestInstallPlanInFlightGuard verifies Important 4: pressing enter twice
+// while an install is in-flight only dispatches one apply command.
+func TestInstallPlanInFlightGuard(t *testing.T) {
+	callCount := 0
+	m := New(nil, nil, nil, nil, func(catalogOverride string, profiles []string) (string, error) {
+		callCount++
+		return "✓ 1 skill up to date", nil
+	})
+	m.screen = ScreenInstallPlan
+	m.selectedProfiles = []string{"tri-fleet"}
+
+	// First enter: dispatches apply, sets installing=true.
+	m2, cmd1 := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	mm := m2.(Model)
+	if cmd1 == nil {
+		t.Fatal("first enter should dispatch a Cmd")
+	}
+	if !mm.installing {
+		t.Error("installing flag should be true after first enter")
+	}
+
+	// Second enter while in-flight: must be no-op.
+	_, cmd2 := mm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd2 != nil {
+		t.Error("second enter while installing must not dispatch another Cmd")
+	}
+
+	// Execute the first cmd.
+	cmd1()
+	if callCount != 1 {
+		t.Errorf("applyInstall called %d times, want exactly 1", callCount)
 	}
 }
 
