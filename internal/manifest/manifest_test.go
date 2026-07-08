@@ -90,3 +90,30 @@ func TestDefaultPath(t *testing.T) {
 		t.Errorf("DefaultPath = %q, want %q", got, want)
 	}
 }
+
+func TestSaveLoadGitCatalogRef(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "andes.json")
+	m := &manifest.Manifest{
+		Version: 1,
+		Catalog: manifest.CatalogRef{
+			Type: "git",
+			URL:  "git@github.com:andespath/andes-ai.git",
+			Ref:  "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+		},
+		Profiles:  []string{"andespath-core"},
+		Installed: map[string]manifest.InstalledSkill{},
+	}
+	if err := m.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	got, err := manifest.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Catalog.Type != "git" || got.Catalog.URL != m.Catalog.URL || got.Catalog.Ref != m.Catalog.Ref {
+		t.Errorf("git CatalogRef roundtrip = %+v", got.Catalog)
+	}
+	if got.Catalog.Path != "" {
+		t.Errorf("Path should be empty for git refs, got %q", got.Catalog.Path)
+	}
+}
