@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -67,6 +68,9 @@ func resolveSource(catalogFlag string, prev *manifest.Manifest, yes bool) (catal
 }
 
 func sourceFor(loc string) (catalog.Source, manifest.CatalogRef, error) {
+	if strings.HasPrefix(loc, "-") {
+		return nil, manifest.CatalogRef{}, fmt.Errorf("invalid catalog URL %q: must not start with '-'", loc)
+	}
 	if isGitURL(loc) {
 		return gitSource(loc)
 	}

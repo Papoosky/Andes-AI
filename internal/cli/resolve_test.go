@@ -1,6 +1,20 @@
 package cli
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
+
+func TestSourceForRejectsDashPrefixedURL(t *testing.T) {
+	malicious := "--upload-pack=touch /tmp/andes_pwned_cli #.git"
+	_, _, err := sourceFor(malicious)
+	if err == nil {
+		t.Fatal("sourceFor() with '-'-prefixed URL should return an error")
+	}
+	if !strings.Contains(err.Error(), "must not start with '-'") {
+		t.Errorf("error = %q, want message containing \"must not start with '-'\"", err)
+	}
+}
 
 func TestIsGitURL(t *testing.T) {
 	tests := []struct {

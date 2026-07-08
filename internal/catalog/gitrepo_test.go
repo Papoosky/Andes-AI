@@ -195,3 +195,26 @@ func TestGitRepoMissingGitBinary(t *testing.T) {
 		t.Errorf("error = %q, want the actionable git-required message", err)
 	}
 }
+
+// TestGitRepoRejectsFlagLikeURL verifies that a URL starting with "-" causes
+// git clone to fail before any payload executes. The URL crafted below would
+// be interpreted by git as a flag (--upload-pack=...) without the "--"
+// separator, allowing arbitrary command execution.
+func TestGitRepoRejectsFlagLikeURL(t *testing.T) {
+	payload := "/tmp/andes_pwned_test"
+	// Remove any leftover from a previous run.
+	_ = os.Remove(payload)
+
+	g := catalog.GitRepo{
+		URL: "--upload-pack=touch " + payload + " #.git",
+		Dir: filepath.Join(t.TempDir(), "mirror"),
+	}
+	err := g.Ensure()
+	if err == nil {
+		t.Fatal("Ensure() with flag-like URL should return an error")
+	}
+
+	if _, statErr := os.Stat(payload); !os.IsNotExist(statErr) {
+		t.Errorf("payload executed: %s was created — RCE not blocked", payload)
+	}
+}

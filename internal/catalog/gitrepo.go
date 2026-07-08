@@ -31,7 +31,7 @@ func (g GitRepo) Ensure() error {
 		if err := os.RemoveAll(g.Dir); err != nil {
 			return fmt.Errorf("could not clean the catalog mirror at %s: %w", g.Dir, err)
 		}
-		if _, err := g.git("clone", g.URL, g.Dir); err != nil {
+		if _, err := g.git("clone", "--", g.URL, g.Dir); err != nil {
 			return fmt.Errorf("could not reach the catalog repo — check your GitHub access (SSH key or token): %w", err)
 		}
 		return nil
@@ -51,7 +51,7 @@ func (g GitRepo) LocalHead() (string, error) {
 // RemoteHead returns the remote's HEAD SHA without downloading content.
 // The caller bounds latency via ctx (the TUI uses a 2s timeout).
 func (g GitRepo) RemoteHead(ctx context.Context) (string, error) {
-	out, err := g.gitCtx(ctx, "ls-remote", g.URL, "HEAD")
+	out, err := g.gitCtx(ctx, "ls-remote", "--", g.URL, "HEAD")
 	if err != nil {
 		return "", err
 	}

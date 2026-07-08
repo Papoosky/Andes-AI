@@ -23,7 +23,7 @@ func newListCmd() *cobra.Command {
 			return runList(cmd, catalogPath)
 		},
 	}
-	cmd.Flags().StringVar(&catalogPath, "catalog", "", "path to the catalog folder")
+	cmd.Flags().StringVar(&catalogPath, "catalog", "", "path or git URL of the catalog")
 	return cmd
 }
 
@@ -39,8 +39,12 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 
 	var src catalog.Source
 	if catalogPath != "" {
-		// Flag wins: explicit --catalog path.
-		src = catalog.LocalDir{Root: catalogPath}
+		// Flag wins: explicit --catalog path or git URL.
+		s, _, err := sourceFor(catalogPath)
+		if err != nil {
+			return err
+		}
+		src = s
 	} else if m != nil {
 		// Resolve from manifest type.
 		dir, err := mirrorDir()
