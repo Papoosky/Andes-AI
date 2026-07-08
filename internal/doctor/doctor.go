@@ -47,7 +47,7 @@ func Check(src catalog.Source, m *manifest.Manifest, skillsDir string) ([]Findin
 		_, statErr := os.Stat(diskPath)
 		if errors.Is(statErr, fs.ErrNotExist) {
 			findings = append(findings, Finding{id, StatusMissing,
-				"run `andes init` to reinstall it"})
+				"run `andes install` to reinstall it"})
 			continue
 		}
 		if statErr != nil {
@@ -60,7 +60,7 @@ func Check(src catalog.Source, m *manifest.Manifest, skillsDir string) ([]Findin
 		}
 		if diskHash != inst.Hash {
 			findings = append(findings, Finding{id, StatusModified,
-				"manually edited; re-running `andes init` OVERWRITES your changes — decide first"})
+				"manually edited; re-running `andes install` OVERWRITES your changes — decide first"})
 			continue
 		}
 
@@ -70,7 +70,7 @@ func Check(src catalog.Source, m *manifest.Manifest, skillsDir string) ([]Findin
 		}
 		if catHash != inst.Hash {
 			findings = append(findings, Finding{id, StatusOutdated,
-				"catalog has a newer version; run `andes init`"})
+				"catalog has a newer version; run `andes install`"})
 			continue
 		}
 

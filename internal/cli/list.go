@@ -53,7 +53,7 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 		}
 		src = catalog.SourceFromManifest(m, dir)
 	} else {
-		return errors.New("catalog location unknown: pass --catalog <path> or run `andes init` first")
+		return errors.New("catalog location unknown: pass --catalog <path> or run `andes install` first")
 	}
 
 	cat, err := src.Load()
@@ -81,7 +81,7 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 	w.Flush()
 
 	if m == nil {
-		fmt.Fprintln(cmd.OutOrStdout(), "\nYou haven't run `andes init` yet — run it to install a profile.")
+		fmt.Fprintln(cmd.OutOrStdout(), "\nYou haven't run `andes install` yet — run it to install a profile.")
 	}
 	return nil
 }

@@ -12,15 +12,15 @@ import (
 func TestUpdateNoManifest(t *testing.T) {
 	home := t.TempDir()
 	out, err := runAndes(t, home, "update", "--yes")
-	if err == nil || !strings.Contains(err.Error()+out, "andes init") {
-		t.Errorf("update without manifest should fail pointing at `andes init`: %v\n%s", err, out)
+	if err == nil || !strings.Contains(err.Error()+out, "andes install") {
+		t.Errorf("update without manifest should fail pointing at `andes install`: %v\n%s", err, out)
 	}
 }
 
 func TestUpdateLocalCatalogNothingToDo(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 	out, err := runAndes(t, home, "update", "--yes")
@@ -33,7 +33,7 @@ func TestUpdateAlreadyUpToDate(t *testing.T) {
 	home := t.TempDir()
 	repo, _ := gitFixture(t)
 	if _, err := runAndes(t, home,
-		"init", "--catalog", "file://"+repo, "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", "file://"+repo, "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 	out, err := runAndes(t, home, "update", "--yes")
@@ -49,7 +49,7 @@ func TestUpdatePullsNewSkillVersion(t *testing.T) {
 	home := t.TempDir()
 	repo, commit := gitFixture(t)
 	if _, err := runAndes(t, home,
-		"init", "--catalog", "file://"+repo, "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", "file://"+repo, "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 

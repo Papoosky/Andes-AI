@@ -39,7 +39,7 @@ func DefaultPath() (string, error) {
 }
 
 // Load reads the manifest. A missing file is not an error: it means
-// init never ran, so Load returns (nil, nil).
+// install never ran, so Load returns (nil, nil).
 func Load(path string) (*Manifest, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -50,7 +50,7 @@ func Load(path string) (*Manifest, error) {
 	}
 	var m Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, fmt.Errorf("corrupted manifest at %s: delete it and re-run `andes init` (%w)", path, err)
+		return nil, fmt.Errorf("corrupted manifest at %s: delete it and re-run `andes install` (%w)", path, err)
 	}
 	return &m, nil
 }

@@ -29,6 +29,6 @@ func NewRootCmd() *cobra.Command {
 			return nil
 		},
 	}
-	root.AddCommand(newInitCmd(), newListCmd(), newDoctorCmd(), newUpdateCmd())
+	root.AddCommand(newInstallCmd(), newListCmd(), newDoctorCmd(), newUpdateCmd())
 	return root
 }

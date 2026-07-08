@@ -30,7 +30,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if m == nil {
-		return errors.New("no manifest found: you have not run `andes init` yet")
+		return errors.New("no manifest found: you have not run `andes install` yet")
 	}
 
 	dir, err := mirrorDir()
@@ -44,7 +44,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		if m.Catalog.Type == "git" {
 			loc = m.Catalog.URL
 		}
-		return fmt.Errorf("catalog inaccessible at %s: fix the path and re-run `andes init --catalog <path>` (%w)",
+		return fmt.Errorf("catalog inaccessible at %s: fix the path and re-run `andes install --catalog <path>` (%w)",
 			loc, err)
 	}
 

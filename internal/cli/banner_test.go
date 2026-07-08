@@ -22,7 +22,7 @@ func TestBannerContainsCommands(t *testing.T) {
 	}
 
 	output := out.String()
-	for _, want := range []string{"init", "list", "doctor"} {
+	for _, want := range []string{"install", "list", "doctor"} {
 		if !strings.Contains(output, want) {
 			t.Errorf("banner output missing %q:\n%s", want, output)
 		}

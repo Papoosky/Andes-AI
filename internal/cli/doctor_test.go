@@ -10,7 +10,7 @@ import (
 func TestDoctorHealthyAfterInit(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -26,7 +26,7 @@ func TestDoctorHealthyAfterInit(t *testing.T) {
 func TestDoctorDetectsMissingSkill(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 	os.RemoveAll(filepath.Join(home, ".claude", "skills", "golang"))
@@ -51,11 +51,11 @@ func TestDoctorWithoutManifest(t *testing.T) {
 
 func TestDoctorInaccessibleCatalog(t *testing.T) {
 	home := t.TempDir()
-	// init against a catalog that later disappears
+	// install against a catalog that later disappears
 	tmpCat := filepath.Join(t.TempDir(), "cat")
 	copyFixture(t, tmpCat)
 	if _, err := runAndes(t, home,
-		"init", "--catalog", tmpCat, "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", tmpCat, "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 	os.RemoveAll(tmpCat)

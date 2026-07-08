@@ -11,7 +11,7 @@ func TestListWithoutManifestShowsCatalogAndHint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list error = %v\n%s", err, out)
 	}
-	for _, want := range []string{"andespath-core", "tri-fleet", "git-conventions", "not installed", "andes init"} {
+	for _, want := range []string{"andespath-core", "tri-fleet", "git-conventions", "not installed", "andes install"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("list output does not contain %q:\n%s", want, out)
 		}
@@ -21,7 +21,7 @@ func TestListWithoutManifestShowsCatalogAndHint(t *testing.T) {
 func TestListAfterInitShowsInstalled(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -52,8 +52,8 @@ func TestListWithGitCatalog(t *testing.T) {
 
 	// Initialize with git catalog.
 	if _, err := runAndes(t, home,
-		"init", "--catalog", url, "--profiles", "tri-fleet", "--yes"); err != nil {
-		t.Fatalf("init: %v", err)
+		"install", "--catalog", url, "--profiles", "tri-fleet", "--yes"); err != nil {
+		t.Fatalf("install: %v", err)
 	}
 
 	// List should succeed and show golang as installed.

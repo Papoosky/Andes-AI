@@ -36,7 +36,7 @@ func TestInitInstallsProfiles(t *testing.T) {
 	home := t.TempDir()
 
 	out, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "andespath-core,tri-fleet", "--yes")
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "andespath-core,tri-fleet", "--yes")
 	if err != nil {
 		t.Fatalf("init error = %v\noutput:\n%s", err, out)
 	}
@@ -64,7 +64,7 @@ func TestInitInstallsProfiles(t *testing.T) {
 
 func TestInitIsIdempotent(t *testing.T) {
 	home := t.TempDir()
-	args := []string{"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"}
+	args := []string{"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"}
 
 	if _, err := runAndes(t, home, args...); err != nil {
 		t.Fatal(err)
@@ -81,20 +81,20 @@ func TestInitIsIdempotent(t *testing.T) {
 func TestInitRemembersCatalogPath(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 	// Second run without --catalog: must reuse the manifest's path.
-	if _, err := runAndes(t, home, "init", "--profiles", "tri-fleet", "--yes"); err != nil {
-		t.Fatalf("init without --catalog with previous manifest failed: %v", err)
+	if _, err := runAndes(t, home, "install", "--profiles", "tri-fleet", "--yes"); err != nil {
+		t.Fatalf("install without --catalog with previous manifest failed: %v", err)
 	}
 }
 
 func TestInitNonInteractiveRequiresFlags(t *testing.T) {
 	home := t.TempDir()
 	// --yes without --catalog and no previous manifest: actionable error.
-	if _, err := runAndes(t, home, "init", "--yes"); err == nil {
-		t.Error("init --yes without catalog should fail with actionable error")
+	if _, err := runAndes(t, home, "install", "--yes"); err == nil {
+		t.Error("install --yes without catalog should fail with actionable error")
 	}
 }
 
@@ -102,27 +102,27 @@ func TestInitRequiresProfiles(t *testing.T) {
 	home := t.TempDir()
 	// --catalog given but no --profiles and no previous manifest: actionable error.
 	if _, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--yes"); err == nil {
-		t.Error("init --yes without profiles should fail with actionable error")
+		"install", "--catalog", fixtureCatalog(t), "--yes"); err == nil {
+		t.Error("install --yes without profiles should fail with actionable error")
 	}
 }
 
 func TestInitWithoutYesAborts(t *testing.T) {
 	home := t.TempDir()
 	out, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet")
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet")
 	if err == nil {
-		t.Fatal("init without --yes should abort with explicit error")
+		t.Fatal("install without --yes should abort with explicit error")
 	}
 	// Plan must still be shown before aborting, and nothing installed.
 	if !bytes.Contains([]byte(out), []byte("Plan:")) {
-		t.Errorf("init without --yes should show the plan before aborting:\n%s", out)
+		t.Errorf("install without --yes should show the plan before aborting:\n%s", out)
 	}
 	if _, statErr := os.Stat(filepath.Join(home, ".claude", "skills", "golang")); statErr == nil {
-		t.Error("init without --yes should not install skills")
+		t.Error("install without --yes should not install skills")
 	}
 	if _, statErr := os.Stat(filepath.Join(home, ".claude", "andes.json")); statErr == nil {
-		t.Error("init without --yes should not write the manifest")
+		t.Error("install without --yes should not write the manifest")
 	}
 }
 
@@ -132,9 +132,9 @@ func TestInitFromGitCatalog(t *testing.T) {
 	fileURL := "file://" + repo
 
 	out, err := runAndes(t, home,
-		"init", "--catalog", fileURL, "--profiles", "tri-fleet", "--yes")
+		"install", "--catalog", fileURL, "--profiles", "tri-fleet", "--yes")
 	if err != nil {
-		t.Fatalf("init from git: %v\n%s", err, out)
+		t.Fatalf("install from git: %v\n%s", err, out)
 	}
 
 	// Skills installed.
@@ -162,10 +162,10 @@ func TestInitDoesNotTouchForeignSkills(t *testing.T) {
 	os.WriteFile(filepath.Join(foreign, "SKILL.md"), []byte("# mine"), 0o644)
 
 	if _, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(foreign, "SKILL.md")); err != nil {
-		t.Error("init touched a personal skill not in the manifest")
+		t.Error("install touched a personal skill not in the manifest")
 	}
 }

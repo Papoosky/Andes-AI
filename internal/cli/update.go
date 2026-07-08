@@ -33,10 +33,10 @@ func runUpdate(cmd *cobra.Command, yes bool) error {
 		return err
 	}
 	if prev == nil {
-		return errors.New("no manifest found: you haven't run `andes init` yet")
+		return errors.New("no manifest found: you haven't run `andes install` yet")
 	}
 	if prev.Catalog.Type != "git" {
-		return errors.New("nothing to update: local catalog (re-run `andes init` to refresh from a local folder)")
+		return errors.New("nothing to update: local catalog (re-run `andes install` to refresh from a local folder)")
 	}
 
 	dir, err := mirrorDir()

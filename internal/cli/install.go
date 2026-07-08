@@ -12,16 +12,16 @@ import (
 	"github.com/andespath/andes-ai/internal/manifest"
 )
 
-func newInitCmd() *cobra.Command {
+func newInstallCmd() *cobra.Command {
 	var catalogPath string
 	var profiles []string
 	var yes bool
 
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Installs skills from the catalog according to profiles",
+		Use:   "install",
+		Short: "Install skills from the catalog according to profiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runInit(cmd, catalogPath, profiles, yes)
+			return runInstall(cmd, catalogPath, profiles, yes)
 		},
 	}
 	cmd.Flags().StringVar(&catalogPath, "catalog", "", "path or git URL of the catalog")
@@ -30,7 +30,7 @@ func newInitCmd() *cobra.Command {
 	return cmd
 }
 
-func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool) error {
+func runInstall(cmd *cobra.Command, catalogPath string, profiles []string, yes bool) error {
 	mPath, err := manifest.DefaultPath()
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 }
 
 // installAndSave runs the shared plan→confirm→apply→save pipeline used by
-// both init and update.
+// both install and update.
 func installAndSave(cmd *cobra.Command, src catalog.Source, cat *catalog.Catalog, prev *manifest.Manifest, profiles []string, catRef manifest.CatalogRef, yes bool) error {
 	actions, err := installer.Plan(src, cat, prev, profiles)
 	if err != nil {

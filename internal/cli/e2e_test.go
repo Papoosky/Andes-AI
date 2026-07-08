@@ -12,9 +12,9 @@ import (
 func TestEndToEnd(t *testing.T) {
 	home := t.TempDir()
 
-	// 1. Onboarding: init with both profiles
+	// 1. Onboarding: install with both profiles
 	out, err := runAndes(t, home,
-		"init", "--catalog", fixtureCatalog(t), "--profiles", "andespath-core,tri-fleet", "--yes")
+		"install", "--catalog", fixtureCatalog(t), "--profiles", "andespath-core,tri-fleet", "--yes")
 	if err != nil {
 		t.Fatalf("init: %v\n%s", err, out)
 	}
@@ -45,12 +45,12 @@ func TestEndToEnd(t *testing.T) {
 		t.Errorf("doctor did not classify as modified:\n%s", out)
 	}
 
-	// 5. re-init repairs
+	// 5. re-install repairs
 	if out, err = runAndes(t, home,
-		"init", "--profiles", "andespath-core,tri-fleet", "--yes"); err != nil {
-		t.Fatalf("re-init: %v\n%s", err, out)
+		"install", "--profiles", "andespath-core,tri-fleet", "--yes"); err != nil {
+		t.Fatalf("re-install: %v\n%s", err, out)
 	}
 	if out, err = runAndes(t, home, "doctor"); err != nil {
-		t.Fatalf("doctor after re-init should be healthy: %v\n%s", err, out)
+		t.Fatalf("doctor after re-install should be healthy: %v\n%s", err, out)
 	}
 }

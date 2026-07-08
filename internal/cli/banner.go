@@ -19,7 +19,7 @@ func renderBanner() string {
 	// Command list — name in highlight color, description muted
 	type entry struct{ name, desc string }
 	commands := []entry{
-		{"init", "install skills from the catalog"},
+		{"install", "install skills from the catalog"},
 		{"list", "show catalog and install status"},
 		{"doctor", "diagnose drift between manifest and disk"},
 	}

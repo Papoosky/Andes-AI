@@ -38,7 +38,7 @@ type menuOption struct {
 
 func defaultOptions() []menuOption {
 	return []menuOption{
-		{id: "init", label: "init", desc: "install skills from the catalog"},
+		{id: "install", label: "install", desc: "install skills from the catalog"},
 		{id: "list", label: "list", desc: "show catalog and install status"},
 		{id: "doctor", label: "doctor", desc: "diagnose drift"},
 		{id: "quit", label: "quit", desc: "exit andes"},
@@ -238,18 +238,18 @@ func (m Model) selectOption() (tea.Model, tea.Cmd) {
 	case "quit":
 		return m, tea.Quit
 
-	case "init":
+	case "install":
 		// Interactive — suspend TUI and hand the terminal to the subprocess.
 		exe, err := os.Executable()
 		if err != nil {
 			// Fall back to showing the error.
-			result := cmdResultMsg{cmdID: "init", output: "", err: fmt.Errorf("cannot resolve executable: %w", err)}
+			result := cmdResultMsg{cmdID: "install", output: "", err: fmt.Errorf("cannot resolve executable: %w", err)}
 			return m, func() tea.Msg { return result }
 		}
 		return m, tea.ExecProcess(
-			exec.Command(exe, "init"),
+			exec.Command(exe, "install"),
 			func(err error) tea.Msg {
-				// After init returns, go back to menu (no output screen needed).
+				// After install returns, go back to menu (no output screen needed).
 				return tea.KeyMsg{Type: tea.KeyEsc}
 			},
 		)

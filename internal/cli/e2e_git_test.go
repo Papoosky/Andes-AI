@@ -16,9 +16,9 @@ func TestGitLifecycle(t *testing.T) {
 	repo, commit := gitFixture(t)
 	url := "file://" + repo
 
-	// 1. Fresh dev: init from git.
+	// 1. Fresh dev: install from git.
 	out, err := runAndes(t, home,
-		"init", "--catalog", url, "--profiles", "andespath-core,tri-fleet", "--yes")
+		"install", "--catalog", url, "--profiles", "andespath-core,tri-fleet", "--yes")
 	if err != nil {
 		t.Fatalf("init: %v\n%s", err, out)
 	}
