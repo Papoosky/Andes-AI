@@ -22,10 +22,32 @@ func renderBanner() string {
 	cmdName := lipgloss.NewStyle().Foreground(lipgloss.Color(colorIce))
 	heading := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorSnow))
 
+	// Command list — name in highlight color, description muted
+	type entry struct{ name, desc string }
+	commands := []entry{
+		{"init", "install skills from the catalog"},
+		{"list", "show catalog and install status"},
+		{"doctor", "diagnose drift between manifest and disk"},
+	}
+
+	// Inner width = widest text line; the logo block is centered against it.
+	title := "andes — andespath skills, one command"
+	footer := "run andes <command> --help for details"
+	innerWidth := lipgloss.Width(title)
+	if w := lipgloss.Width(footer); w > innerWidth {
+		innerWidth = w
+	}
+	for _, c := range commands {
+		if w := 2 + 10 + lipgloss.Width(c.desc); w > innerWidth {
+			innerWidth = w
+		}
+	}
+
 	var sb strings.Builder
 
-	// Logo (gradient applied inside RenderLogo)
-	sb.WriteString(RenderLogo())
+	// Logo (gradient applied inside RenderLogo), centered, blank line below
+	sb.WriteString(RenderLogo(innerWidth))
+	sb.WriteRune('\n')
 
 	// Title line
 	sb.WriteString(bold.Render("andes"))
@@ -37,13 +59,6 @@ func renderBanner() string {
 	sb.WriteString(heading.Render("Commands"))
 	sb.WriteRune('\n')
 
-	// Command list — name in highlight color, description muted
-	type entry struct{ name, desc string }
-	commands := []entry{
-		{"init", "install skills from the catalog"},
-		{"list", "show catalog and install status"},
-		{"doctor", "diagnose drift between manifest and disk"},
-	}
 	for _, c := range commands {
 		sb.WriteString("  ")
 		sb.WriteString(cmdName.Render(c.name))
