@@ -115,6 +115,7 @@ func (m Model) handleInstallDoneMsg(msg installDoneMsg) (tea.Model, tea.Cmd) {
 		}
 		out += msg.err.Error()
 	}
+	m.fitViewport(out)
 	m.vp.SetContent(out)
 	m.vp.GotoTop()
 	m.cmdTitle = "install"

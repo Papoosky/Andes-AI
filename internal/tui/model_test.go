@@ -266,6 +266,53 @@ func TestPressUWithNilRootIsSafe(t *testing.T) {
 	}
 }
 
+// ── Output box hugs content ────────────────────────────────────────────────
+
+// TestOutputBoxHugsShortContent verifies that a short output string results
+// in a box width much smaller than the terminal width (content-hugging), while
+// a long output is capped at the terminal width (not overflowing).
+func TestOutputBoxHugsShortContent(t *testing.T) {
+	const termWidth = 80
+
+	// Short content — box must hug, not blow up to terminal width.
+	t.Run("short content is hugged", func(t *testing.T) {
+		m := New(nil, nil, nil, nil)
+		sized, _ := m.Update(tea.WindowSizeMsg{Width: termWidth, Height: 24})
+		m = sized.(Model)
+
+		result, _ := m.Update(cmdResultMsg{cmdID: "doctor", output: "All healthy", err: nil})
+		m = result.(Model)
+
+		view := m.View()
+		firstLine := strings.SplitN(view, "\n", 2)[0]
+		boxWidth := lipgloss.Width(firstLine)
+
+		if boxWidth >= 40 {
+			t.Errorf("short content: box top border width %d should be < 40 (hugging), terminal=%d\nview:\n%s", boxWidth, termWidth, view)
+		}
+	})
+
+	// Long content — box must not exceed terminal width.
+	t.Run("long content is capped", func(t *testing.T) {
+		m := New(nil, nil, nil, nil)
+		sized, _ := m.Update(tea.WindowSizeMsg{Width: termWidth, Height: 24})
+		m = sized.(Model)
+
+		longLine := strings.Repeat("x", 200)
+		longOutput := strings.Join([]string{longLine, longLine, longLine}, "\n")
+		result, _ := m.Update(cmdResultMsg{cmdID: "list", output: longOutput, err: nil})
+		m = result.(Model)
+
+		view := m.View()
+		firstLine := strings.SplitN(view, "\n", 2)[0]
+		boxWidth := lipgloss.Width(firstLine)
+
+		if boxWidth > termWidth {
+			t.Errorf("long content: box top border width %d exceeds terminal width %d\nview:\n%s", boxWidth, termWidth, view)
+		}
+	})
+}
+
 // ── Frame tests ───────────────────────────────────────────────────────────────
 
 // TestMenuAndOutputAreFramed verifies that both TUI screens are wrapped in the

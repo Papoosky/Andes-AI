@@ -175,6 +175,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			out = strings.TrimRight(out, "\n") + "\n" + msg.err.Error()
 		}
+		m.fitViewport(out)
 		m.vp.SetContent(out)
 		m.vp.GotoTop()
 		m.cmdTitle = msg.cmdID
@@ -254,6 +255,53 @@ func (m Model) updateOutput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.vp, cmd = m.vp.Update(msg)
 	return m, cmd
+}
+
+// fitViewport sizes the viewport to the content, hugging small output and
+// capping large output so the bordered box never exceeds the terminal.
+// It must be called before vp.SetContent so the viewport renders at the
+// right size from the first frame.
+func (m *Model) fitViewport(content string) {
+	lines := strings.Split(content, "\n")
+	widest := 0
+	for _, ln := range lines {
+		if w := lipgloss.Width(ln); w > widest {
+			widest = w
+		}
+	}
+	// Width: hug the widest line, capped by terminal (minus frame overhead 6)
+	// and an absolute max; floored so tiny output isn't cramped.
+	// Guard: if m.width == 0 (before first WindowSizeMsg, e.g. unit tests),
+	// use a fallback of 80 so tests still get a sane box.
+	baseWidth := m.width
+	if baseWidth == 0 {
+		baseWidth = 80
+	}
+	maxW := baseWidth - 6
+	if maxW > 100 {
+		maxW = 100
+	}
+	w := widest
+	if w > maxW {
+		w = maxW
+	}
+	if w < 24 {
+		w = 24
+	}
+	m.vp.Width = w
+	// Height: hug line count, capped by terminal (minus header/footer/frame ~6).
+	maxH := m.height - 6
+	if maxH < 3 {
+		maxH = 3
+	}
+	h := len(lines)
+	if h > maxH {
+		h = maxH
+	}
+	if h < 1 {
+		h = 1
+	}
+	m.vp.Height = h
 }
 
 // runInProcess executes a subcommand with captured output, async.
