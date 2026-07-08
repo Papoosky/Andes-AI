@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestDoctorHealthyAfterInit(t *testing.T) {
+func TestDoctorHealthyAfterInstall(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
 		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {

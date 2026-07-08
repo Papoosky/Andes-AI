@@ -20,7 +20,7 @@ func TestGitLifecycle(t *testing.T) {
 	out, err := runAndes(t, home,
 		"install", "--catalog", url, "--profiles", "andespath-core,tri-fleet", "--yes")
 	if err != nil {
-		t.Fatalf("init: %v\n%s", err, out)
+		t.Fatalf("install: %v\n%s", err, out)
 	}
 
 	// 2. List shows installed skills.

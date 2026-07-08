@@ -16,7 +16,7 @@ func TestEndToEnd(t *testing.T) {
 	out, err := runAndes(t, home,
 		"install", "--catalog", fixtureCatalog(t), "--profiles", "andespath-core,tri-fleet", "--yes")
 	if err != nil {
-		t.Fatalf("init: %v\n%s", err, out)
+		t.Fatalf("install: %v\n%s", err, out)
 	}
 
 	// 2. list shows everything installed

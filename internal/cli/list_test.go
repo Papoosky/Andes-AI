@@ -18,7 +18,7 @@ func TestListWithoutManifestShowsCatalogAndHint(t *testing.T) {
 	}
 }
 
-func TestListAfterInitShowsInstalled(t *testing.T) {
+func TestListAfterInstallShowsInstalled(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
 		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {

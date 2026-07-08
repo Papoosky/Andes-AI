@@ -32,7 +32,7 @@ func runAndes(t *testing.T, home string, args ...string) (string, error) {
 	return out.String(), err
 }
 
-func TestInitInstallsProfiles(t *testing.T) {
+func TestInstallInstallsProfiles(t *testing.T) {
 	home := t.TempDir()
 
 	out, err := runAndes(t, home,
@@ -62,7 +62,7 @@ func TestInitInstallsProfiles(t *testing.T) {
 	}
 }
 
-func TestInitIsIdempotent(t *testing.T) {
+func TestInstallIsIdempotent(t *testing.T) {
 	home := t.TempDir()
 	args := []string{"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"}
 
@@ -78,7 +78,7 @@ func TestInitIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestInitRemembersCatalogPath(t *testing.T) {
+func TestInstallRemembersCatalogPath(t *testing.T) {
 	home := t.TempDir()
 	if _, err := runAndes(t, home,
 		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
@@ -90,7 +90,7 @@ func TestInitRemembersCatalogPath(t *testing.T) {
 	}
 }
 
-func TestInitNonInteractiveRequiresFlags(t *testing.T) {
+func TestInstallNonInteractiveRequiresFlags(t *testing.T) {
 	home := t.TempDir()
 	// --yes without --catalog and no previous manifest: actionable error.
 	if _, err := runAndes(t, home, "install", "--yes"); err == nil {
@@ -98,7 +98,7 @@ func TestInitNonInteractiveRequiresFlags(t *testing.T) {
 	}
 }
 
-func TestInitRequiresProfiles(t *testing.T) {
+func TestInstallRequiresProfiles(t *testing.T) {
 	home := t.TempDir()
 	// --catalog given but no --profiles and no previous manifest: actionable error.
 	if _, err := runAndes(t, home,
@@ -107,7 +107,7 @@ func TestInitRequiresProfiles(t *testing.T) {
 	}
 }
 
-func TestInitWithoutYesAborts(t *testing.T) {
+func TestInstallWithoutYesAborts(t *testing.T) {
 	home := t.TempDir()
 	out, err := runAndes(t, home,
 		"install", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet")
@@ -126,7 +126,7 @@ func TestInitWithoutYesAborts(t *testing.T) {
 	}
 }
 
-func TestInitFromGitCatalog(t *testing.T) {
+func TestInstallFromGitCatalog(t *testing.T) {
 	home := t.TempDir()
 	repo, _ := gitFixture(t)
 	fileURL := "file://" + repo
@@ -155,7 +155,7 @@ func TestInitFromGitCatalog(t *testing.T) {
 	}
 }
 
-func TestInitDoesNotTouchForeignSkills(t *testing.T) {
+func TestInstallDoesNotTouchForeignSkills(t *testing.T) {
 	home := t.TempDir()
 	foreign := filepath.Join(home, ".claude", "skills", "mi-skill-personal")
 	os.MkdirAll(foreign, 0o755)
