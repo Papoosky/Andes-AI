@@ -1261,6 +1261,10 @@ Expected: FAIL — `undefined: installer.Apply`.
 // Apply executes the plan: install/update actions copy the skill folder
 // (clean copy: destination removed first), skips are left untouched.
 // The returned map is the complete `installed` section for the manifest.
+// NOTA POST-E2E: esta semántica resultó incompleta — el E2E (Task 12) demostró
+// que skip debe verificar el DISCO en apply-time y reparar skills modificadas
+// o borradas localmente (el spec define re-init como LA reparación). Ver commit
+// "fix: re-init repairs missing and modified skills at apply time".
 func Apply(src catalog.Source, actions []Action, skillsDir string) (map[string]manifest.InstalledSkill, error) {
 	installed := make(map[string]manifest.InstalledSkill, len(actions))
 	for _, a := range actions {
