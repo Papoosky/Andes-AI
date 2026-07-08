@@ -71,6 +71,12 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 		}
 	}
 
+	return installAndSave(cmd, src, cat, prev, profiles, catRef, yes)
+}
+
+// installAndSave runs the shared plan→confirm→apply→save pipeline used by
+// both init and update.
+func installAndSave(cmd *cobra.Command, src catalog.Source, cat *catalog.Catalog, prev *manifest.Manifest, profiles []string, catRef manifest.CatalogRef, yes bool) error {
 	actions, err := installer.Plan(src, cat, prev, profiles)
 	if err != nil {
 		return err
@@ -110,6 +116,10 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 		Catalog:   catRef,
 		Profiles:  profiles,
 		Installed: installed,
+	}
+	mPath, err := manifest.DefaultPath()
+	if err != nil {
+		return err
 	}
 	if err := next.Save(mPath); err != nil {
 		return err
