@@ -255,3 +255,12 @@ func TestCmdResultClearsUpdateBanner(t *testing.T) {
 		t.Error("banner should clear after an update run")
 	}
 }
+
+func TestPressUWithNilRootIsSafe(t *testing.T) {
+	m := New(nil, nil)
+	updated, _ := m.Update(FreshnessMsg{Outdated: true})
+	_, cmd := updated.(Model).Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
+	if cmd != nil {
+		t.Error("u with nil root factory should be a no-op, not a panic or dispatch")
+	}
+}

@@ -204,6 +204,9 @@ func (m Model) updateOutput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // runInProcess executes a subcommand with captured output, async.
 func (m Model) runInProcess(args ...string) (tea.Model, tea.Cmd) {
+	if m.newRoot == nil {
+		return m, nil // defensive: no-op when the command factory is not provided (test models)
+	}
 	newRoot := m.newRoot
 	cmdID := args[0]
 	return m, func() tea.Msg {
