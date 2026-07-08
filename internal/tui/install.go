@@ -22,6 +22,13 @@ type installProfilesMsg struct {
 	err          error
 }
 
+// installDoneMsg carries the result of an in-process install run. It is
+// dispatched by the tea.Cmd returned from updateInstallPlan's enter handler.
+type installDoneMsg struct {
+	summary string
+	err     error
+}
+
 // ── Entry: startInstall ────────────────────────────────────────────────────
 
 // startInstall is called from selectOption when the user picks "install".
@@ -93,6 +100,24 @@ func (m Model) handleInstallProfilesMsg(msg installProfilesMsg) (tea.Model, tea.
 	}
 
 	m.screen = ScreenInstallProfiles
+	return m, nil
+}
+
+// ── installDoneMsg handler ─────────────────────────────────────────────────
+
+// handleInstallDoneMsg routes the apply result to the output screen.
+func (m Model) handleInstallDoneMsg(msg installDoneMsg) (tea.Model, tea.Cmd) {
+	out := msg.summary
+	if msg.err != nil {
+		if out != "" {
+			out += "\n"
+		}
+		out += msg.err.Error()
+	}
+	m.vp.SetContent(out)
+	m.vp.GotoTop()
+	m.cmdTitle = "install"
+	m.screen = ScreenOutput
 	return m, nil
 }
 
@@ -246,12 +271,22 @@ func (m Model) viewInstallCatalog() string {
 }
 
 // ── ScreenInstallPlan: update & view ──────────────────────────────────────
-// Task 3 fills the apply logic. Here we render a review placeholder.
 
 func (m Model) updateInstallPlan(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
+	case msg.Type == tea.KeyEnter:
+		if m.applyInstall == nil {
+			return m, nil
+		}
+		apply := m.applyInstall
+		profiles := m.selectedProfiles
+		return m, func() tea.Msg {
+			summary, err := apply(profiles)
+			return installDoneMsg{summary: summary, err: err}
+		}
+
 	case msg.Type == tea.KeyEsc:
-		m.screen = ScreenInstallProfiles
+		m.screen = ScreenMenu
 
 	case msg.Type == tea.KeyCtrlC || (msg.Type == tea.KeyRunes && string(msg.Runes) == "q"):
 		return m, tea.Quit
@@ -264,7 +299,7 @@ func (m Model) viewInstallPlan() string {
 	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ColorSlate))
 
 	var sb strings.Builder
-	sb.WriteString(bold.Render("Install plan"))
+	sb.WriteString(bold.Render("Review"))
 	sb.WriteString("\n\n")
 
 	if len(m.selectedProfiles) == 0 {
@@ -279,9 +314,7 @@ func (m Model) viewInstallPlan() string {
 	}
 
 	sb.WriteString("\n")
-	sb.WriteString(muted.Render("(apply coming in Task 3)"))
-	sb.WriteString("\n\n")
-	sb.WriteString(muted.Render("esc: back • q: quit"))
+	sb.WriteString(muted.Render("enter: apply • esc: back"))
 
 	return theme.Frame().Render(sb.String())
 }
