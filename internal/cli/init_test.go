@@ -12,7 +12,7 @@ import (
 
 func fixtureCatalog(t *testing.T) string {
 	t.Helper()
-	abs, err := filepath.Abs("../../testdata/catalog")
+	abs, err := filepath.Abs("../../catalog")
 	if err != nil {
 		t.Fatal(err)
 	}

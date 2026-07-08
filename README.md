@@ -10,10 +10,10 @@ and drift diagnostics.
 go build -o andes ./cmd/andes
 
 # Onboarding: choose profiles and install (interactive)
-./andes init --catalog ./testdata/catalog
+./andes init --catalog ./catalog
 
 # Or scripted (CI, dotfiles, automated onboarding)
-./andes init --catalog ./testdata/catalog --profiles andespath-core,tri-fleet --yes
+./andes init --catalog ./catalog --profiles andespath-core,tri-fleet --yes
 
 # See what's available and what you have
 ./andes list

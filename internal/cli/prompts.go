@@ -17,7 +17,7 @@ func promptCatalogPath() (string, error) {
 	var path string
 	err := huh.NewInput().
 		Title("Where is the skills catalog?").
-		Description("The catalog is the source folder your skills are installed from — it contains a catalog.json (profiles) and a skills/ directory.\nTip: for the demo catalog use ./testdata/catalog").
+		Description("The catalog is the source folder your skills are installed from — it contains a catalog.json (profiles) and a skills/ directory.\nTip: for the demo catalog use ./catalog").
 		Value(&path).
 		Validate(func(s string) error {
 			if strings.TrimSpace(s) == "" {
