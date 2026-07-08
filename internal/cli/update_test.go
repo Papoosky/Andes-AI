@@ -11,8 +11,9 @@ import (
 
 func TestUpdateNoManifest(t *testing.T) {
 	home := t.TempDir()
-	if _, err := runAndes(t, home, "update", "--yes"); err == nil {
-		t.Error("update without manifest should fail with actionable error")
+	out, err := runAndes(t, home, "update", "--yes")
+	if err == nil || !strings.Contains(err.Error()+out, "andes init") {
+		t.Errorf("update without manifest should fail pointing at `andes init`: %v\n%s", err, out)
 	}
 }
 
@@ -53,7 +54,9 @@ func TestUpdatePullsNewSkillVersion(t *testing.T) {
 	}
 
 	// Upstream change.
-	os.WriteFile(filepath.Join(repo, "catalog", "skills", "golang", "SKILL.md"), []byte("# golang v2"), 0o644)
+	if err := os.WriteFile(filepath.Join(repo, "catalog", "skills", "golang", "SKILL.md"), []byte("# golang v2"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	commit("bump golang")
 
 	out, err := runAndes(t, home, "update", "--yes")
