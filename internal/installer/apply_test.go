@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/andespath/andes-ai/internal/catalog"
 	"github.com/andespath/andes-ai/internal/installer"
 	"github.com/andespath/andes-ai/internal/manifest"
 )
@@ -161,6 +162,51 @@ func TestApplySkipUntouchedWhenClean(t *testing.T) {
 	}
 	if installed2["golang"].Hash != installed["golang"].Hash {
 		t.Errorf("installed hash changed on clean skip: got %q", installed2["golang"].Hash)
+	}
+}
+
+func TestApplyPreservesExecBit(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "catalog.json"), []byte(`{
+		"name": "exectest",
+		"profiles": {
+			"exec": {"description": "exec", "skills": ["execskill"]}
+		}
+	}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	skillDir := filepath.Join(root, "skills", "execskill")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# execskill"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	src := catalog.LocalDir{Root: root}
+	cat, err := src.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	actions, err := installer.Plan(src, cat, nil, []string{"exec"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	skillsDir := t.TempDir()
+	if _, err := installer.Apply(src, actions, skillsDir); err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+
+	fi, err := os.Stat(filepath.Join(skillsDir, "execskill", "run.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := fi.Mode().Perm()
+	if m&0o100 == 0 {
+		t.Errorf("run.sh mode = %04o, exec bit not preserved", m)
 	}
 }
 

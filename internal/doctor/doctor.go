@@ -56,7 +56,7 @@ func Check(src catalog.Source, m *manifest.Manifest, skillsDir string) ([]Findin
 
 		diskHash, err := hashdir.Hash(diskPath)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("no pude leer la skill %q en disco: %w", id, err)
 		}
 		if diskHash != inst.Hash {
 			findings = append(findings, Finding{id, StatusModified,
@@ -66,7 +66,7 @@ func Check(src catalog.Source, m *manifest.Manifest, skillsDir string) ([]Findin
 
 		catHash, err := hashdir.Hash(src.SkillPath(id))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("no pude leer la skill %q del catálogo: %w", id, err)
 		}
 		if catHash != inst.Hash {
 			findings = append(findings, Finding{id, StatusOutdated,

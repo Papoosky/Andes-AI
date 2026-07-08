@@ -73,6 +73,48 @@ func TestLocalDirLoadErrors(t *testing.T) {
 			},
 			wantErr: "fantasma",
 		},
+		{
+			name: "skill id con path traversal ../evil",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
+					"name": "x",
+					"profiles": {"p1": {"description": "d", "skills": ["../evil"]}}
+				}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				return dir
+			},
+			wantErr: "id inválido",
+		},
+		{
+			name: "skill id con separador a/b",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
+					"name": "x",
+					"profiles": {"p1": {"description": "d", "skills": ["a/b"]}}
+				}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				return dir
+			},
+			wantErr: "id inválido",
+		},
+		{
+			name: "skill id puntopunto",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
+					"name": "x",
+					"profiles": {"p1": {"description": "d", "skills": [".."]}}
+				}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				return dir
+			},
+			wantErr: "id inválido",
+		},
 	}
 
 	for _, tt := range tests {

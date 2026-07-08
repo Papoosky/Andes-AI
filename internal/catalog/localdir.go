@@ -39,6 +39,11 @@ func (l LocalDir) validate(c *Catalog) error {
 	var problems []string
 	for name, p := range c.Profiles {
 		for _, id := range p.Skills {
+			if !validSkillID(id) {
+				problems = append(problems,
+					fmt.Sprintf("el perfil %q referencia la skill %q: id inválido (no puede contener separadores de ruta ni '..')", name, id))
+				continue
+			}
 			skillMD := filepath.Join(l.SkillPath(id), "SKILL.md")
 			if _, err := os.Stat(skillMD); os.IsNotExist(err) {
 				problems = append(problems,
@@ -53,4 +58,15 @@ func (l LocalDir) validate(c *Catalog) error {
 		return fmt.Errorf("catálogo inválido:\n  %s", strings.Join(problems, "\n  "))
 	}
 	return nil
+}
+
+// validSkillID rejects ids that could escape the skills directory.
+func validSkillID(id string) bool {
+	if id == "" || id == "." || id == ".." {
+		return false
+	}
+	if strings.ContainsAny(id, `/\`) || strings.Contains(id, "..") || filepath.IsAbs(id) {
+		return false
+	}
+	return true
 }
