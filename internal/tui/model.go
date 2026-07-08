@@ -279,47 +279,47 @@ func (m Model) viewMenu() string {
 	selected := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(theme.ColorIce))
 	warn := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#f6c177"))
 
-	var sb strings.Builder
+	// Build the text block first (title, optional banner, menu, footer),
+	// left-aligned. The logo is then centered over this block's width so the
+	// whole thing reads as a single column: logo on top, text below.
+	var body strings.Builder
 
-	logoWidth := m.width - 6
-	if logoWidth < 20 {
-		logoWidth = 50
-	}
+	body.WriteString(bold.Render("andes"))
+	body.WriteString(muted.Render(" — andespath skills, one command"))
+	body.WriteString("\n\n")
 
-	// Logo rendered from the shared logo package, centered in the inner width.
-	sb.WriteString(logo.Render(logoWidth))
-
-	// Title.
-	sb.WriteString(bold.Render("andes"))
-	sb.WriteString(muted.Render(" — andespath skills, one command"))
-	sb.WriteString("\n\n")
-
-	// Freshness banner (shown when catalog is outdated).
 	if m.outdated {
-		sb.WriteString(warn.Render("⚠ catalog updated — press u to update"))
-		sb.WriteString("\n\n")
+		body.WriteString(warn.Render("⚠ catalog updated — press u to update"))
+		body.WriteString("\n\n")
 	}
 
-	// Menu items.
 	for i, opt := range m.options {
 		if i == m.cursor {
-			sb.WriteString(selected.Render("▸ " + opt.label))
-			sb.WriteString("  ")
-			sb.WriteString(muted.Render(opt.desc))
+			body.WriteString(selected.Render("▸ " + opt.label))
+			body.WriteString("  ")
+			body.WriteString(muted.Render(opt.desc))
 		} else {
-			sb.WriteString(muted.Render("  " + opt.label))
-			sb.WriteString("  ")
-			sb.WriteString(muted.Render(opt.desc))
+			body.WriteString(muted.Render("  " + opt.label))
+			body.WriteString("  ")
+			body.WriteString(muted.Render(opt.desc))
 		}
-		sb.WriteRune('\n')
+		body.WriteRune('\n')
 	}
 
-	sb.WriteRune('\n')
+	body.WriteRune('\n')
 	footer := "↑/k ↓/j: navigate • enter: select • q: quit"
 	if m.offline {
 		footer += " • offline"
 	}
-	sb.WriteString(muted.Render(footer))
+	body.WriteString(muted.Render(footer))
+
+	bodyText := body.String()
+	bodyWidth := lipgloss.Width(bodyText) // widest line of the text block
+
+	var sb strings.Builder
+	// Logo centered over the text block width — no floating to the side.
+	sb.WriteString(logo.Render(bodyWidth))
+	sb.WriteString(bodyText)
 	sb.WriteRune('\n')
 
 	return theme.Frame().Render(sb.String())
