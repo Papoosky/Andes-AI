@@ -4,22 +4,27 @@ andespath AI agent skill manager. Installs standardized skill sets (profiles)
 from a central catalog into `~/.claude/skills/`, with an install receipt manifest
 and drift diagnostics.
 
-## Quickstart
+## Install
+
+```bash
+gh repo clone andespath/andes-ai && ./andes-ai/install.sh
+```
+
+Then just run:
+
+```bash
+andes
+```
+
+First run clones the company catalog and walks you through picking profiles.
+When the catalog gets new skills, the TUI shows "⚠ catalog updated — press u
+to update". From scripts: `andes update --yes`.
+
+## Development
 
 ```bash
 go build -o andes ./cmd/andes
-
-# Onboarding: choose profiles and install (interactive)
-./andes init --catalog ./catalog
-
-# Or scripted (CI, dotfiles, automated onboarding)
-./andes init --catalog ./catalog --profiles andespath-core,tri-fleet --yes
-
-# See what's available and what you have
-./andes list
-
-# Check for drift (exit != 0 if there are problems)
-./andes doctor
+./andes init --catalog ./catalog --profiles andespath-core --yes   # local catalog
 ```
 
 ## Concepts
