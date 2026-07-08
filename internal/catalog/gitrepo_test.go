@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -123,7 +124,9 @@ func TestGitRepoHeads(t *testing.T) {
 	}
 
 	// New commit upstream → remote moves, local stays.
-	os.WriteFile(filepath.Join(repo, "catalog", "skills", "golang", "SKILL.md"), []byte("# golang v2"), 0o644)
+	if err := os.WriteFile(filepath.Join(repo, "catalog", "skills", "golang", "SKILL.md"), []byte("# golang v2"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	commit("bump golang")
 
 	remote2, err := g.RemoteHead(ctx)
@@ -143,7 +146,9 @@ func TestGitRepoSync(t *testing.T) {
 	}
 	before, _ := g.LocalHead()
 
-	os.WriteFile(filepath.Join(repo, "catalog", "skills", "golang", "SKILL.md"), []byte("# golang v2"), 0o644)
+	if err := os.WriteFile(filepath.Join(repo, "catalog", "skills", "golang", "SKILL.md"), []byte("# golang v2"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	commit("bump golang")
 
 	after, err := g.Sync()
@@ -174,5 +179,19 @@ func TestGitRepoImplementsSource(t *testing.T) {
 	}
 	if p := g.SkillPath("golang"); p != filepath.Join(g.Dir, "catalog", "skills", "golang") {
 		t.Errorf("SkillPath = %q", p)
+	}
+}
+
+func TestGitRepoMissingGitBinary(t *testing.T) {
+	// Force LookPath failure by pointing PATH at an empty dir.
+	t.Setenv("PATH", t.TempDir())
+
+	g := catalog.GitRepo{URL: "ignored", Dir: filepath.Join(t.TempDir(), "mirror")}
+	err := g.Ensure()
+	if err == nil {
+		t.Fatal("Ensure() without git should fail")
+	}
+	if !strings.Contains(err.Error(), "git is required") {
+		t.Errorf("error = %q, want the actionable git-required message", err)
 	}
 }
