@@ -6,13 +6,11 @@ package tui
 
 import (
 	"bytes"
-	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/andespath/andes-ai/internal/logo"
 	"github.com/andespath/andes-ai/internal/theme"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -26,6 +24,9 @@ type Screen int
 const (
 	ScreenMenu Screen = iota
 	ScreenOutput
+	ScreenInstallCatalog
+	ScreenInstallProfiles
+	ScreenInstallPlan
 )
 
 // ── Menu options ───────────────────────────────────────────────────────────
@@ -66,6 +67,13 @@ type UpdateCheck func() FreshnessMsg
 
 // ── Model ──────────────────────────────────────────────────────────────────
 
+// CatalogProfilesFunc is injected from cli so tui stays decoupled from
+// manifest/git specifics. It resolves the catalog source, loads it, and
+// returns sorted profile names, their descriptions, the currently-installed
+// profile set, and whether the catalog location is already known (so the
+// flow can skip the catalog-input screen).
+type CatalogProfilesFunc func() (names []string, descs map[string]string, installed []string, catalogKnown bool, err error)
+
 // Model holds all TUI state. newRoot is a factory used to build a fresh
 // cobra command for in-process execution — this breaks the cli→tui import
 // cycle because tui never imports cli's package-level symbols; the factory
@@ -82,20 +90,33 @@ type Model struct {
 	height   int
 	outdated bool
 	offline  bool
+
+	// install-flow fields
+	catalogProfiles  CatalogProfilesFunc
+	catInput         textinput.Model
+	profiles         []string
+	profileDesc      map[string]string
+	profileChecked   map[string]bool
+	profileCursor    int
+	selectedProfiles []string
+	installErr       error
 }
 
 // New builds a Model ready to run.
-func New(newRoot func() *cobra.Command, check UpdateCheck) Model {
+// catalogProfiles is an optional injected callback; pass nil in tests that
+// inject messages directly (the install-flow tests do exactly this).
+func New(newRoot func() *cobra.Command, check UpdateCheck, catalogProfiles CatalogProfilesFunc) Model {
 	vp := viewport.New(80, 20)
 	return Model{
-		screen:  ScreenMenu,
-		cursor:  0,
-		options: defaultOptions(),
-		newRoot: newRoot,
-		check:   check,
-		vp:      vp,
-		width:   80,
-		height:  24,
+		screen:          ScreenMenu,
+		cursor:          0,
+		options:         defaultOptions(),
+		newRoot:         newRoot,
+		check:           check,
+		vp:              vp,
+		width:           80,
+		height:          24,
+		catalogProfiles: catalogProfiles,
 	}
 }
 
@@ -151,12 +172,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.screen = ScreenOutput
 		return m, nil
 
+	case installProfilesMsg:
+		return m.handleInstallProfilesMsg(msg)
+
 	case tea.KeyMsg:
 		switch m.screen {
 		case ScreenMenu:
 			return m.updateMenu(msg)
 		case ScreenOutput:
 			return m.updateOutput(msg)
+		case ScreenInstallCatalog:
+			return m.updateInstallCatalog(msg)
+		case ScreenInstallProfiles:
+			return m.updateInstallProfiles(msg)
+		case ScreenInstallPlan:
+			return m.updateInstallPlan(msg)
 		}
 	}
 	return m, nil
@@ -239,20 +269,7 @@ func (m Model) selectOption() (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case "install":
-		// Interactive — suspend TUI and hand the terminal to the subprocess.
-		exe, err := os.Executable()
-		if err != nil {
-			// Fall back to showing the error.
-			result := cmdResultMsg{cmdID: "install", output: "", err: fmt.Errorf("cannot resolve executable: %w", err)}
-			return m, func() tea.Msg { return result }
-		}
-		return m, tea.ExecProcess(
-			exec.Command(exe, "install"),
-			func(err error) tea.Msg {
-				// After install returns, go back to menu (no output screen needed).
-				return tea.KeyMsg{Type: tea.KeyEsc}
-			},
-		)
+		return m.startInstall()
 
 	case "list", "doctor":
 		return m.runInProcess(opt.id)
@@ -269,6 +286,12 @@ func (m Model) View() string {
 		return m.viewMenu()
 	case ScreenOutput:
 		return m.viewOutput()
+	case ScreenInstallCatalog:
+		return m.viewInstallCatalog()
+	case ScreenInstallProfiles:
+		return m.viewInstallProfiles()
+	case ScreenInstallPlan:
+		return m.viewInstallPlan()
 	}
 	return ""
 }
@@ -351,11 +374,12 @@ func (m Model) viewOutput() string {
 // Run starts the Bubbletea program. newRoot is a factory for a fresh
 // cobra root command, used for in-process command execution.
 // check is an optional async freshness probe; pass nil to skip it.
+// catalogProfiles is an optional injected callback for the install flow.
 // cli imports tui, so tui MUST NOT import cli at the package level for
 // NewRootCmd — the factory is passed in, breaking any import cycle.
 // Both cli and tui import internal/logo (leaf package); neither imports the other.
-func Run(newRoot func() *cobra.Command, check UpdateCheck) error {
-	p := tea.NewProgram(New(newRoot, check), tea.WithAltScreen())
+func Run(newRoot func() *cobra.Command, check UpdateCheck, catalogProfiles CatalogProfilesFunc) error {
+	p := tea.NewProgram(New(newRoot, check, catalogProfiles), tea.WithAltScreen())
 	_, err := p.Run()
 	return err
 }

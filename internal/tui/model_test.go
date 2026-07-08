@@ -11,7 +11,7 @@ import (
 
 // helper: build a fresh model at ScreenMenu.
 func newTestModel() Model {
-	return New(nil, nil)
+	return New(nil, nil, nil)
 }
 
 // helper: send a key rune message.
@@ -210,7 +210,7 @@ func TestQuit_onOutput(t *testing.T) {
 // ── Freshness banner and u-key ─────────────────────────────────────────────
 
 func TestFreshnessOutdatedShowsBanner(t *testing.T) {
-	m := New(nil, nil)
+	m := New(nil, nil, nil)
 	updated, _ := m.Update(FreshnessMsg{Outdated: true})
 	mm := updated.(Model)
 	if !strings.Contains(mm.View(), "press u to update") {
@@ -219,7 +219,7 @@ func TestFreshnessOutdatedShowsBanner(t *testing.T) {
 }
 
 func TestFreshnessOfflineShowsFooterNote(t *testing.T) {
-	m := New(nil, nil)
+	m := New(nil, nil, nil)
 	updated, _ := m.Update(FreshnessMsg{Offline: true})
 	mm := updated.(Model)
 	if !strings.Contains(mm.View(), "offline") {
@@ -228,7 +228,7 @@ func TestFreshnessOfflineShowsFooterNote(t *testing.T) {
 }
 
 func TestPressUWithoutUpdateAvailableDoesNothing(t *testing.T) {
-	m := New(nil, nil)
+	m := New(nil, nil, nil)
 	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
 	if cmd != nil {
 		t.Error("u without update available should be a no-op")
@@ -236,7 +236,7 @@ func TestPressUWithoutUpdateAvailableDoesNothing(t *testing.T) {
 }
 
 func TestPressUWithUpdateAvailableRunsUpdate(t *testing.T) {
-	m := New(func() *cobra.Command { return &cobra.Command{Use: "andes"} }, nil)
+	m := New(func() *cobra.Command { return &cobra.Command{Use: "andes"} }, nil, nil)
 	updated, _ := m.Update(FreshnessMsg{Outdated: true})
 	mm := updated.(Model)
 	_, cmd := mm.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
@@ -246,7 +246,7 @@ func TestPressUWithUpdateAvailableRunsUpdate(t *testing.T) {
 }
 
 func TestCmdResultClearsUpdateBanner(t *testing.T) {
-	m := New(nil, nil)
+	m := New(nil, nil, nil)
 	updated, _ := m.Update(FreshnessMsg{Outdated: true})
 	updated, _ = updated.(Model).Update(cmdResultMsg{cmdID: "update", output: "done"})
 	mm := updated.(Model)
@@ -258,7 +258,7 @@ func TestCmdResultClearsUpdateBanner(t *testing.T) {
 }
 
 func TestPressUWithNilRootIsSafe(t *testing.T) {
-	m := New(nil, nil)
+	m := New(nil, nil, nil)
 	updated, _ := m.Update(FreshnessMsg{Outdated: true})
 	_, cmd := updated.(Model).Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")})
 	if cmd != nil {
@@ -275,7 +275,7 @@ func TestMenuAndOutputAreFramed(t *testing.T) {
 	const doubleBorderCorner = "╔"
 
 	// Give the model a real terminal size so sizing paths are exercised.
-	m := New(nil, nil)
+	m := New(nil, nil, nil)
 	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	m = sized.(Model)
 
@@ -302,7 +302,7 @@ func TestMenuAndOutputAreFramed(t *testing.T) {
 func TestBoxWidthStableAcrossScreens(t *testing.T) {
 	const termWidth = 80
 
-	m := New(nil, nil)
+	m := New(nil, nil, nil)
 	sized, _ := m.Update(tea.WindowSizeMsg{Width: termWidth, Height: 24})
 	m = sized.(Model)
 

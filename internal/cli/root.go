@@ -23,7 +23,7 @@ func NewRootCmd() *cobra.Command {
 			// On a real TTY → interactive TUI. Otherwise (CI, pipes, tests) →
 			// static banner so existing tests keep passing unchanged.
 			if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()) {
-				return tui.Run(NewRootCmd, checkCatalogFreshness)
+				return tui.Run(NewRootCmd, checkCatalogFreshness, buildCatalogProfilesFunc())
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), renderBanner())
 			return nil
