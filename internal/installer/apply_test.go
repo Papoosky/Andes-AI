@@ -218,7 +218,7 @@ func TestApplyUpdateReplacesStaleFiles(t *testing.T) {
 	// Pre-existing stale install with an extra file that must disappear.
 	stale := filepath.Join(skillsDir, "golang")
 	os.MkdirAll(stale, 0o755)
-	os.WriteFile(filepath.Join(stale, "basura.md"), []byte("viejo"), 0o644)
+	os.WriteFile(filepath.Join(stale, "junk.md"), []byte("old"), 0o644)
 
 	actions, err := installer.Plan(src, cat, nil, []string{"tri"})
 	if err != nil {
@@ -228,7 +228,7 @@ func TestApplyUpdateReplacesStaleFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := os.Stat(filepath.Join(stale, "basura.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(stale, "junk.md")); !os.IsNotExist(err) {
 		t.Error("stale file should have been removed (clean copy)")
 	}
 	if _, err := os.Stat(filepath.Join(stale, "SKILL.md")); err != nil {
