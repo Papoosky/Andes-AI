@@ -28,10 +28,10 @@ func TestApplyCopiesSkills(t *testing.T) {
 	for _, id := range []string{"git-conventions", "code-review"} {
 		skillMD := filepath.Join(skillsDir, id, "SKILL.md")
 		if _, err := os.Stat(skillMD); err != nil {
-			t.Errorf("falta %s tras Apply", skillMD)
+			t.Errorf("missing %s after Apply", skillMD)
 		}
 		if installed[id].Hash == "" {
-			t.Errorf("installed[%q] sin hash", id)
+			t.Errorf("installed[%q] has no hash", id)
 		}
 	}
 }
@@ -229,9 +229,9 @@ func TestApplyUpdateReplacesStaleFiles(t *testing.T) {
 	}
 
 	if _, err := os.Stat(filepath.Join(stale, "basura.md")); !os.IsNotExist(err) {
-		t.Error("el archivo viejo debería haber sido eliminado (copia limpia)")
+		t.Error("stale file should have been removed (clean copy)")
 	}
 	if _, err := os.Stat(filepath.Join(stale, "SKILL.md")); err != nil {
-		t.Error("falta SKILL.md tras update")
+		t.Error("SKILL.md missing after update")
 	}
 }

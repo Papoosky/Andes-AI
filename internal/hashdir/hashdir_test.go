@@ -34,10 +34,10 @@ func TestHashDeterministic(t *testing.T) {
 		t.Fatal(err)
 	}
 	if h1 != h2 {
-		t.Errorf("hash no determinista: %s != %s", h1, h2)
+		t.Errorf("non-deterministic hash: %s != %s", h1, h2)
 	}
 	if !strings.HasPrefix(h1, "sha256:") {
-		t.Errorf("hash sin prefijo sha256: %s", h1)
+		t.Errorf("hash missing sha256 prefix: %s", h1)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestHashChangesOnContentChange(t *testing.T) {
 	}
 
 	if h1 == h2 {
-		t.Error("hash no cambió al cambiar contenido")
+		t.Error("hash did not change after content change")
 	}
 }
 
@@ -68,14 +68,14 @@ func TestHashChangesOnNewFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	writeFile(t, dir, "otro.md", "nuevo")
+	writeFile(t, dir, "other.md", "new")
 	h2, err := hashdir.Hash(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if h1 == h2 {
-		t.Error("hash no cambió al agregar archivo")
+		t.Error("hash did not change after adding a file")
 	}
 }
 
@@ -83,7 +83,7 @@ func TestHashEqualDirsEqualHash(t *testing.T) {
 	dir1 := t.TempDir()
 	dir2 := t.TempDir()
 	for _, d := range []string{dir1, dir2} {
-		writeFile(t, d, "SKILL.md", "mismo contenido")
+		writeFile(t, d, "SKILL.md", "same content")
 	}
 	h1, err := hashdir.Hash(dir1)
 	if err != nil {
@@ -94,7 +94,7 @@ func TestHashEqualDirsEqualHash(t *testing.T) {
 		t.Fatal(err)
 	}
 	if h1 != h2 {
-		t.Errorf("dirs iguales con hash distinto: %s != %s", h1, h2)
+		t.Errorf("equal dirs have different hash: %s != %s", h1, h2)
 	}
 }
 
@@ -115,13 +115,13 @@ func TestHashChangesOnRename(t *testing.T) {
 	}
 
 	if h1 == h2 {
-		t.Error("hash no cambió tras renombrar un archivo")
+		t.Error("hash did not change after renaming a file")
 	}
 }
 
 func TestHashMissingDir(t *testing.T) {
-	_, err := hashdir.Hash(filepath.Join(t.TempDir(), "no-existe"))
+	_, err := hashdir.Hash(filepath.Join(t.TempDir(), "does-not-exist"))
 	if err == nil {
-		t.Error("Hash de dir inexistente debería fallar")
+		t.Error("Hash of non-existent dir should fail")
 	}
 }

@@ -31,7 +31,7 @@ type Manifest struct {
 func DefaultPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("no pude resolver tu home dir: %w", err)
+		return "", fmt.Errorf("could not resolve home directory: %w", err)
 	}
 	return filepath.Join(home, ".claude", "andes.json"), nil
 }
@@ -44,11 +44,11 @@ func Load(path string) (*Manifest, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("no pude leer el manifiesto en %s: %w", path, err)
+		return nil, fmt.Errorf("could not read manifest at %s: %w", path, err)
 	}
 	var m Manifest
 	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, fmt.Errorf("manifiesto corrupto en %s: borralo y re-corré `andes init` (%w)", path, err)
+		return nil, fmt.Errorf("corrupted manifest at %s: delete it and re-run `andes init` (%w)", path, err)
 	}
 	return &m, nil
 }
@@ -57,7 +57,7 @@ func Load(path string) (*Manifest, error) {
 // A crash mid-write leaves the previous manifest intact.
 func (m *Manifest) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("no pude crear el directorio para %s: %w", path, err)
+		return fmt.Errorf("could not create directory for %s: %w", path, err)
 	}
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
@@ -65,7 +65,7 @@ func (m *Manifest) Save(path string) error {
 	}
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".andes-*.tmp")
 	if err != nil {
-		return fmt.Errorf("no pude crear el archivo temporal para %s: %w", path, err)
+		return fmt.Errorf("could not create temp file for %s: %w", path, err)
 	}
 	defer os.Remove(tmp.Name()) // no-op after successful rename
 	if _, err := tmp.Write(data); err != nil {

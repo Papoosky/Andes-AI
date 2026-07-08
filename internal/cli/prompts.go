@@ -13,15 +13,15 @@ import (
 func promptCatalogPath() (string, error) {
 	var path string
 	err := huh.NewInput().
-		Title("¿Dónde está el catálogo de skills?").
-		Description("Ruta a la carpeta que contiene catalog.json").
+		Title("Where is the skills catalog?").
+		Description("Path to the folder containing catalog.json").
 		Value(&path).
 		Run()
 	if err != nil {
 		return "", err
 	}
 	if path == "" {
-		return "", errors.New("necesito la ruta del catálogo para continuar")
+		return "", errors.New("catalog path is required to continue")
 	}
 	return path, nil
 }
@@ -41,7 +41,7 @@ func promptProfiles(cat *catalog.Catalog) ([]string, error) {
 
 	var selected []string
 	err := huh.NewMultiSelect[string]().
-		Title("¿Qué perfiles querés instalar?").
+		Title("Which profiles do you want to install?").
 		Options(opts...).
 		Value(&selected).
 		Run()
@@ -49,7 +49,7 @@ func promptProfiles(cat *catalog.Catalog) ([]string, error) {
 		return nil, err
 	}
 	if len(selected) == 0 {
-		return nil, errors.New("no elegiste ningún perfil")
+		return nil, errors.New("no profile selected")
 	}
 	return selected, nil
 }
@@ -57,8 +57,8 @@ func promptProfiles(cat *catalog.Catalog) ([]string, error) {
 func confirmPlan() (bool, error) {
 	var ok bool
 	err := huh.NewConfirm().
-		Title("¿Aplicar estos cambios?").
-		Affirmative("Sí, dale").
+		Title("Apply these changes?").
+		Affirmative("Yes, go ahead").
 		Negative("No").
 		Value(&ok).
 		Run()

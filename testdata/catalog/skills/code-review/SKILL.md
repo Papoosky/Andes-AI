@@ -1,11 +1,11 @@
 ---
 name: code-review
-description: Estándar de code review de andespath. Usar al revisar PRs o preparar código para review.
+description: andespath code review standard. Use when reviewing PRs or preparing code for review.
 ---
 
 # Code Review — andespath
 
-- Todo PR necesita al menos 1 aprobación antes de merge.
-- El reviewer verifica: correctitud, tests, naming, y que el PR haga UNA sola cosa.
-- Comentarios accionables: proponer alternativa, no solo señalar el problema.
-- PRs de más de ~400 líneas se piden dividir.
+- Every PR needs at least 1 approval before merge.
+- The reviewer checks: correctness, tests, naming, and that the PR does ONE single thing.
+- Actionable comments: propose an alternative, don't just point out the problem.
+- PRs over ~400 lines should be split.

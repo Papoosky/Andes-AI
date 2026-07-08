@@ -1,11 +1,11 @@
 ---
 name: golang
-description: Best practices de Go en andespath. Usar al escribir o revisar código Go.
+description: Go best practices at andespath. Use when writing or reviewing Go code.
 ---
 
 # Go — andespath
 
-- Errores: envolver con contexto (`fmt.Errorf("...: %w", err)`), nunca ignorar.
-- Tests table-driven para lógica con múltiples casos.
-- Interfaces chicas, definidas del lado del consumidor.
-- `gofmt` y `go vet` limpios antes de commitear.
+- Errors: wrap with context (`fmt.Errorf("...: %w", err)`), never ignore.
+- Table-driven tests for logic with multiple cases.
+- Small interfaces, defined on the consumer side.
+- `gofmt` and `go vet` clean before committing.

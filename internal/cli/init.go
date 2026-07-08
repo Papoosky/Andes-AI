@@ -19,14 +19,14 @@ func newInitCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Instala skills desde el catálogo según perfiles",
+		Short: "Installs skills from the catalog according to profiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runInit(cmd, catalogPath, profiles, yes)
 		},
 	}
-	cmd.Flags().StringVar(&catalogPath, "catalog", "", "ruta a la carpeta del catálogo")
-	cmd.Flags().StringSliceVar(&profiles, "profiles", nil, "perfiles a instalar (ej: andespath-core,tri-fleet)")
-	cmd.Flags().BoolVar(&yes, "yes", false, "aplicar sin pedir confirmación")
+	cmd.Flags().StringVar(&catalogPath, "catalog", "", "path to the catalog folder")
+	cmd.Flags().StringSliceVar(&profiles, "profiles", nil, "profiles to install (e.g.: andespath-core,tri-fleet)")
+	cmd.Flags().BoolVar(&yes, "yes", false, "apply without confirmation prompt")
 	return cmd
 }
 
@@ -46,7 +46,7 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 	}
 	if catalogPath == "" {
 		if yes {
-			return errors.New("no sé dónde está el catálogo: pasá --catalog <ruta>")
+			return errors.New("catalog location unknown: pass --catalog <path>")
 		}
 		catalogPath, err = promptCatalogPath()
 		if err != nil {
@@ -66,7 +66,7 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 	}
 	if len(profiles) == 0 {
 		if yes {
-			return errors.New("no sé qué perfiles instalar: pasá --profiles a,b (corré `andes list` para verlos)")
+			return errors.New("no profiles specified: pass --profiles a,b (run `andes list` to see available ones)")
 		}
 		profiles, err = promptProfiles(cat)
 		if err != nil {
@@ -90,7 +90,7 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 			return err
 		}
 		if !ok {
-			fmt.Fprintln(cmd.OutOrStdout(), "Abortado — no se tocó nada.")
+			fmt.Fprintln(cmd.OutOrStdout(), "Aborted — nothing was touched.")
 			return nil
 		}
 	}
@@ -118,6 +118,6 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 		return err
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "✓ %d skills al día en %s\n", len(installed), sDir)
+	fmt.Fprintf(cmd.OutOrStdout(), "✓ %d skills up to date in %s\n", len(installed), sDir)
 	return nil
 }

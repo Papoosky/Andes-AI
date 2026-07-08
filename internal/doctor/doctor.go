@@ -19,9 +19,9 @@ type Status string
 
 const (
 	StatusOK       Status = "ok"
-	StatusMissing  Status = "falta"
-	StatusModified Status = "modificada"
-	StatusOutdated Status = "desactualizada"
+	StatusMissing  Status = "missing"
+	StatusModified Status = "modified"
+	StatusOutdated Status = "outdated"
 )
 
 type Finding struct {
@@ -47,30 +47,30 @@ func Check(src catalog.Source, m *manifest.Manifest, skillsDir string) ([]Findin
 		_, statErr := os.Stat(diskPath)
 		if errors.Is(statErr, fs.ErrNotExist) {
 			findings = append(findings, Finding{id, StatusMissing,
-				"re-corré `andes init` para reinstalarla"})
+				"run `andes init` to reinstall it"})
 			continue
 		}
 		if statErr != nil {
-			return nil, fmt.Errorf("no pude verificar la skill %q en %s: %w", id, diskPath, statErr)
+			return nil, fmt.Errorf("could not verify skill %q at %s: %w", id, diskPath, statErr)
 		}
 
 		diskHash, err := hashdir.Hash(diskPath)
 		if err != nil {
-			return nil, fmt.Errorf("no pude leer la skill %q en disco: %w", id, err)
+			return nil, fmt.Errorf("could not read skill %q on disk: %w", id, err)
 		}
 		if diskHash != inst.Hash {
 			findings = append(findings, Finding{id, StatusModified,
-				"fue editada a mano; re-correr `andes init` PISA tus cambios — decidí antes"})
+				"manually edited; re-running `andes init` OVERWRITES your changes — decide first"})
 			continue
 		}
 
 		catHash, err := hashdir.Hash(src.SkillPath(id))
 		if err != nil {
-			return nil, fmt.Errorf("no pude leer la skill %q del catálogo: %w", id, err)
+			return nil, fmt.Errorf("could not read skill %q from catalog: %w", id, err)
 		}
 		if catHash != inst.Hash {
 			findings = append(findings, Finding{id, StatusOutdated,
-				"el catálogo tiene versión nueva; re-corré `andes init`"})
+				"catalog has a newer version; run `andes init`"})
 			continue
 		}
 

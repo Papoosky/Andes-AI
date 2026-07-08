@@ -42,14 +42,14 @@ func TestLocalDirLoadErrors(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "carpeta sin catalog.json",
+			name: "folder without catalog.json",
 			setup: func(t *testing.T) string {
 				return t.TempDir()
 			},
-			wantErr: "no pude leer el catálogo",
+			wantErr: "could not read the catalog",
 		},
 		{
-			name: "json inválido",
+			name: "invalid json",
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte("{no es json"), 0o644); err != nil {
@@ -57,10 +57,10 @@ func TestLocalDirLoadErrors(t *testing.T) {
 				}
 				return dir
 			},
-			wantErr: "catalog.json inválido",
+			wantErr: "invalid catalog.json",
 		},
 		{
-			name: "perfil referencia skill inexistente",
+			name: "profile references non-existent skill",
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
@@ -74,7 +74,7 @@ func TestLocalDirLoadErrors(t *testing.T) {
 			wantErr: "fantasma",
 		},
 		{
-			name: "skill id con path traversal ../evil",
+			name: "skill id with path traversal ../evil",
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
@@ -85,10 +85,10 @@ func TestLocalDirLoadErrors(t *testing.T) {
 				}
 				return dir
 			},
-			wantErr: "id inválido",
+			wantErr: "invalid id",
 		},
 		{
-			name: "skill id con separador a/b",
+			name: "skill id with separator a/b",
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
@@ -99,10 +99,10 @@ func TestLocalDirLoadErrors(t *testing.T) {
 				}
 				return dir
 			},
-			wantErr: "id inválido",
+			wantErr: "invalid id",
 		},
 		{
-			name: "skill id puntopunto",
+			name: "skill id dotdot",
 			setup: func(t *testing.T) string {
 				dir := t.TempDir()
 				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
@@ -113,7 +113,7 @@ func TestLocalDirLoadErrors(t *testing.T) {
 				}
 				return dir
 			},
-			wantErr: "id inválido",
+			wantErr: "invalid id",
 		},
 	}
 

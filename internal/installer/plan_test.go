@@ -64,7 +64,7 @@ func TestPlanFirstInstall(t *testing.T) {
 			t.Errorf("actions[%d].Type = %q, want install", i, actions[i].Type)
 		}
 		if actions[i].Hash == "" {
-			t.Errorf("actions[%d].Hash vacío", i)
+			t.Errorf("actions[%d].Hash is empty", i)
 		}
 	}
 	if actions[2].Profile != "tri" {
@@ -125,6 +125,6 @@ func TestPlanUnknownProfile(t *testing.T) {
 	src := makeCatalog(t)
 	_, err := installer.Plan(src, loadCat(t, src), nil, []string{"fantasma"})
 	if err == nil {
-		t.Error("Plan() con perfil inexistente debería fallar")
+		t.Error("Plan() with non-existent profile should fail")
 	}
 }

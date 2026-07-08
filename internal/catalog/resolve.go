@@ -9,7 +9,7 @@ func ResolveSkills(c *Catalog, profiles []string) (map[string]string, error) {
 	for _, pname := range profiles {
 		p, ok := c.Profiles[pname]
 		if !ok {
-			return nil, fmt.Errorf("el perfil %q no existe en el catálogo; corré `andes list` para ver los disponibles", pname)
+			return nil, fmt.Errorf("profile %q does not exist in the catalog; run `andes list` to see available ones", pname)
 		}
 		for _, id := range p.Skills {
 			if _, seen := resolved[id]; !seen {

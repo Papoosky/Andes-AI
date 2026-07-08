@@ -1,37 +1,37 @@
 # andes-ai
 
-Gestor de skills de agentes IA de andespath. Instala sets de skills
-estandarizados (perfiles) desde un catálogo central hacia `~/.claude/skills/`,
-con un manifiesto-recibo y diagnóstico de drift.
+andespath AI agent skill manager. Installs standardized skill sets (profiles)
+from a central catalog into `~/.claude/skills/`, with an install receipt manifest
+and drift diagnostics.
 
 ## Quickstart
 
 ```bash
 go build -o andes ./cmd/andes
 
-# Onboarding: elegir perfiles e instalar (interactivo)
+# Onboarding: choose profiles and install (interactive)
 ./andes init --catalog ./testdata/catalog
 
-# O scripteado (CI, dotfiles, onboarding automatizado)
+# Or scripted (CI, dotfiles, automated onboarding)
 ./andes init --catalog ./testdata/catalog --profiles andespath-core,tri-fleet --yes
 
-# Ver qué hay y qué tenés
+# See what's available and what you have
 ./andes list
 
-# Chequear drift (exit != 0 si hay problemas)
+# Check for drift (exit != 0 if there are problems)
 ./andes doctor
 ```
 
-## Conceptos
+## Concepts
 
-- **Catálogo**: carpeta (repo git en v2) con `catalog.json` + `skills/<id>/SKILL.md`.
-- **Perfil**: bundle nombrado de skills (`andespath-core` para todos, uno por equipo/cliente).
-- **Manifiesto** (`~/.claude/andes.json`): recibo de qué está instalado, con hash por skill.
-- **Reparación**: siempre re-correr `andes init`. `doctor` diagnostica, no toca.
+- **Catalog**: folder (git repo in v2) with `catalog.json` + `skills/<id>/SKILL.md`.
+- **Profile**: named bundle of skills (`andespath-core` for everyone, one per team/client).
+- **Manifest** (`~/.claude/andes.json`): receipt of what is installed, with a hash per skill.
+- **Repair**: always re-run `andes init`. `doctor` diagnoses, never touches.
 
-`andes` solo administra las skills que instaló (las del manifiesto) — jamás
-toca skills personales en `~/.claude/skills/`.
+`andes` only manages the skills it installed (those in the manifest) — it never
+touches personal skills in `~/.claude/skills/`.
 
-## Diseño
+## Design
 
-Spec completo en `docs/superpowers/specs/2026-07-07-andes-ai-mvp-design.md`.
+Full spec in `docs/superpowers/specs/2026-07-07-andes-ai-mvp-design.md`.

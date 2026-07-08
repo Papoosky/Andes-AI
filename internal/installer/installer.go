@@ -17,9 +17,9 @@ import (
 type ActionType string
 
 const (
-	ActionInstall ActionType = "instalar"
-	ActionUpdate  ActionType = "actualizar"
-	ActionSkip    ActionType = "sin cambios"
+	ActionInstall ActionType = "install"
+	ActionUpdate  ActionType = "update"
+	ActionSkip    ActionType = "unchanged"
 )
 
 // Action is one planned step for one skill. Hash is the catalog-side hash.
@@ -47,7 +47,7 @@ func Plan(src catalog.Source, cat *catalog.Catalog, m *manifest.Manifest, profil
 	for _, id := range ids {
 		h, err := hashdir.Hash(src.SkillPath(id))
 		if err != nil {
-			return nil, fmt.Errorf("no pude hashear la skill %q del catálogo: %w", id, err)
+			return nil, fmt.Errorf("could not hash skill %q from catalog: %w", id, err)
 		}
 		a := Action{SkillID: id, Profile: resolved[id], Hash: h, Type: ActionInstall}
 		if m != nil {
@@ -80,7 +80,7 @@ func Apply(src catalog.Source, actions []Action, skillsDir string) (map[string]m
 			case errors.Is(err, fs.ErrNotExist):
 				actionType = ActionUpdate // deleted on disk: reinstall
 			case err != nil:
-				return nil, fmt.Errorf("no pude verificar la skill %q en disco: %w", a.SkillID, err)
+				return nil, fmt.Errorf("could not verify skill %q on disk: %w", a.SkillID, err)
 			case diskHash != a.Hash:
 				actionType = ActionUpdate // locally modified: repair
 			}
@@ -89,10 +89,10 @@ func Apply(src catalog.Source, actions []Action, skillsDir string) (map[string]m
 		if actionType != ActionSkip {
 			dst := filepath.Join(skillsDir, a.SkillID)
 			if err := os.RemoveAll(dst); err != nil {
-				return nil, fmt.Errorf("no pude limpiar %s: %w", dst, err)
+				return nil, fmt.Errorf("could not clean %s: %w", dst, err)
 			}
 			if err := copyDir(src.SkillPath(a.SkillID), dst); err != nil {
-				return nil, fmt.Errorf("no pude instalar la skill %q: %w", a.SkillID, err)
+				return nil, fmt.Errorf("could not install skill %q: %w", a.SkillID, err)
 			}
 		}
 		installed[a.SkillID] = manifest.InstalledSkill{Hash: a.Hash, Profile: a.Profile}

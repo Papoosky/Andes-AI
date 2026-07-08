@@ -16,10 +16,10 @@ func TestDoctorHealthyAfterInit(t *testing.T) {
 
 	out, err := runAndes(t, home, "doctor")
 	if err != nil {
-		t.Fatalf("doctor sano debería salir 0: %v\n%s", err, out)
+		t.Fatalf("healthy doctor should exit 0: %v\n%s", err, out)
 	}
 	if !strings.Contains(out, "✓") {
-		t.Errorf("doctor no reporta salud:\n%s", out)
+		t.Errorf("doctor does not report health:\n%s", out)
 	}
 }
 
@@ -33,10 +33,10 @@ func TestDoctorDetectsMissingSkill(t *testing.T) {
 
 	out, err := runAndes(t, home, "doctor")
 	if err == nil {
-		t.Errorf("doctor con skill faltante debería fallar (exit != 0):\n%s", out)
+		t.Errorf("doctor with missing skill should fail (exit != 0):\n%s", out)
 	}
-	if !strings.Contains(out, "falta") {
-		t.Errorf("doctor no reporta la skill faltante:\n%s", out)
+	if !strings.Contains(out, "missing") {
+		t.Errorf("doctor does not report the missing skill:\n%s", out)
 	}
 }
 
@@ -44,7 +44,7 @@ func TestDoctorWithoutManifest(t *testing.T) {
 	home := t.TempDir()
 	out, err := runAndes(t, home, "doctor")
 	if err == nil {
-		t.Error("doctor sin manifiesto debería fallar")
+		t.Error("doctor without manifest should fail")
 	}
 	_ = out
 }
@@ -62,7 +62,7 @@ func TestDoctorInaccessibleCatalog(t *testing.T) {
 
 	out, err := runAndes(t, home, "doctor")
 	if err == nil {
-		t.Errorf("doctor con catálogo inaccesible debería fallar:\n%s", out)
+		t.Errorf("doctor with inaccessible catalog should fail:\n%s", out)
 	}
 }
 

@@ -18,12 +18,12 @@ func newListCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "Muestra perfiles y skills del catálogo con su estado",
+		Short: "Shows catalog profiles and skills with their status",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runList(cmd, catalogPath)
 		},
 	}
-	cmd.Flags().StringVar(&catalogPath, "catalog", "", "ruta a la carpeta del catálogo")
+	cmd.Flags().StringVar(&catalogPath, "catalog", "", "path to the catalog folder")
 	return cmd
 }
 
@@ -41,7 +41,7 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 		catalogPath = m.Catalog.Path
 	}
 	if catalogPath == "" {
-		return errors.New("no sé dónde está el catálogo: pasá --catalog <ruta> o corré `andes init` primero")
+		return errors.New("catalog location unknown: pass --catalog <path> or run `andes init` first")
 	}
 
 	src := catalog.LocalDir{Root: catalogPath}
@@ -57,7 +57,7 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 	sort.Strings(profileNames)
 
 	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "PERFIL\tSKILL\tESTADO")
+	fmt.Fprintln(w, "PROFILE\tSKILL\tSTATUS")
 	for _, pname := range profileNames {
 		for _, id := range cat.Profiles[pname].Skills {
 			status, err := skillStatus(src, m, id)
@@ -70,7 +70,7 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 	w.Flush()
 
 	if m == nil {
-		fmt.Fprintln(cmd.OutOrStdout(), "\nTodavía no corriste `andes init` — corrélo para instalar un perfil.")
+		fmt.Fprintln(cmd.OutOrStdout(), "\nYou haven't run `andes init` yet — run it to install a profile.")
 	}
 	return nil
 }
@@ -79,18 +79,18 @@ func runList(cmd *cobra.Command, catalogPath string) error {
 // doctor's job, not list's.
 func skillStatus(src catalog.Source, m *manifest.Manifest, id string) (string, error) {
 	if m == nil {
-		return "✗ no instalada", nil
+		return "✗ not installed", nil
 	}
 	inst, ok := m.Installed[id]
 	if !ok {
-		return "✗ no instalada", nil
+		return "✗ not installed", nil
 	}
 	catHash, err := hashdir.Hash(src.SkillPath(id))
 	if err != nil {
-		return "", fmt.Errorf("no pude leer la skill %q del catálogo: %w", id, err)
+		return "", fmt.Errorf("could not read skill %q from catalog: %w", id, err)
 	}
 	if catHash != inst.Hash {
-		return "⚠ desactualizada", nil
+		return "⚠ outdated", nil
 	}
-	return "✓ instalada", nil
+	return "✓ installed", nil
 }

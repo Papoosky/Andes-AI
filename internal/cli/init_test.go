@@ -45,17 +45,17 @@ func TestInitInstallsProfiles(t *testing.T) {
 	for _, id := range []string{"git-conventions", "code-review", "golang"} {
 		p := filepath.Join(home, ".claude", "skills", id, "SKILL.md")
 		if _, err := os.Stat(p); err != nil {
-			t.Errorf("falta skill instalada: %s", p)
+			t.Errorf("installed skill missing: %s", p)
 		}
 	}
 
 	// Manifest written
 	m, err := manifest.Load(filepath.Join(home, ".claude", "andes.json"))
 	if err != nil || m == nil {
-		t.Fatalf("manifiesto no escrito: %v", err)
+		t.Fatalf("manifest not written: %v", err)
 	}
 	if m.Version != 1 || len(m.Installed) != 3 {
-		t.Errorf("manifiesto = %+v, want version 1 con 3 skills", m)
+		t.Errorf("manifest = %+v, want version 1 with 3 skills", m)
 	}
 	if m.Catalog.Type != "local" {
 		t.Errorf("catalog.type = %q, want local", m.Catalog.Type)
@@ -71,10 +71,10 @@ func TestInitIsIdempotent(t *testing.T) {
 	}
 	out, err := runAndes(t, home, args...)
 	if err != nil {
-		t.Fatalf("segundo init falló: %v", err)
+		t.Fatalf("second init failed: %v", err)
 	}
-	if !bytes.Contains([]byte(out), []byte("sin cambios")) {
-		t.Errorf("segundo init debería reportar 'sin cambios':\n%s", out)
+	if !bytes.Contains([]byte(out), []byte("unchanged")) {
+		t.Errorf("second init should report 'unchanged':\n%s", out)
 	}
 }
 
@@ -86,7 +86,7 @@ func TestInitRemembersCatalogPath(t *testing.T) {
 	}
 	// Second run without --catalog: must reuse the manifest's path.
 	if _, err := runAndes(t, home, "init", "--profiles", "tri-fleet", "--yes"); err != nil {
-		t.Fatalf("init sin --catalog con manifiesto previo falló: %v", err)
+		t.Fatalf("init without --catalog with previous manifest failed: %v", err)
 	}
 }
 
@@ -94,7 +94,7 @@ func TestInitNonInteractiveRequiresFlags(t *testing.T) {
 	home := t.TempDir()
 	// --yes without --catalog and no previous manifest: actionable error.
 	if _, err := runAndes(t, home, "init", "--yes"); err == nil {
-		t.Error("init --yes sin catálogo debería fallar con error accionable")
+		t.Error("init --yes without catalog should fail with actionable error")
 	}
 }
 
@@ -103,7 +103,7 @@ func TestInitRequiresProfiles(t *testing.T) {
 	// --catalog given but no --profiles and no previous manifest: actionable error.
 	if _, err := runAndes(t, home,
 		"init", "--catalog", fixtureCatalog(t), "--yes"); err == nil {
-		t.Error("init --yes sin perfiles debería fallar con error accionable")
+		t.Error("init --yes without profiles should fail with actionable error")
 	}
 }
 
@@ -112,17 +112,17 @@ func TestInitWithoutYesAborts(t *testing.T) {
 	out, err := runAndes(t, home,
 		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet")
 	if err == nil {
-		t.Fatal("init sin --yes debería abortar con error explícito")
+		t.Fatal("init without --yes should abort with explicit error")
 	}
 	// Plan must still be shown before aborting, and nothing installed.
 	if !bytes.Contains([]byte(out), []byte("Plan:")) {
-		t.Errorf("init sin --yes debería mostrar el plan antes de abortar:\n%s", out)
+		t.Errorf("init without --yes should show the plan before aborting:\n%s", out)
 	}
 	if _, statErr := os.Stat(filepath.Join(home, ".claude", "skills", "golang")); statErr == nil {
-		t.Error("init sin --yes no debería instalar skills")
+		t.Error("init without --yes should not install skills")
 	}
 	if _, statErr := os.Stat(filepath.Join(home, ".claude", "andes.json")); statErr == nil {
-		t.Error("init sin --yes no debería escribir el manifiesto")
+		t.Error("init without --yes should not write the manifest")
 	}
 }
 
@@ -130,13 +130,13 @@ func TestInitDoesNotTouchForeignSkills(t *testing.T) {
 	home := t.TempDir()
 	foreign := filepath.Join(home, ".claude", "skills", "mi-skill-personal")
 	os.MkdirAll(foreign, 0o755)
-	os.WriteFile(filepath.Join(foreign, "SKILL.md"), []byte("# mía"), 0o644)
+	os.WriteFile(filepath.Join(foreign, "SKILL.md"), []byte("# mine"), 0o644)
 
 	if _, err := runAndes(t, home,
 		"init", "--catalog", fixtureCatalog(t), "--profiles", "tri-fleet", "--yes"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(foreign, "SKILL.md")); err != nil {
-		t.Error("init tocó una skill personal ajena al manifiesto")
+		t.Error("init touched a personal skill not in the manifest")
 	}
 }

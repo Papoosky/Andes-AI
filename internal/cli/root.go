@@ -6,7 +6,7 @@ import "github.com/spf13/cobra"
 func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "andes",
-		Short:         "Gestor de skills de agentes IA de andespath",
+		Short:         "andespath AI agent skill manager",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

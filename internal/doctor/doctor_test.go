@@ -63,7 +63,7 @@ func TestCheckMissingOnDisk(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(findings) != 1 || findings[0].Status != doctor.StatusMissing {
-		t.Errorf("findings = %+v, want 1 falta", findings)
+		t.Errorf("findings = %+v, want 1 missing", findings)
 	}
 }
 
@@ -76,7 +76,7 @@ func TestCheckLocallyModified(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(findings) != 1 || findings[0].Status != doctor.StatusModified {
-		t.Errorf("findings = %+v, want 1 modificada", findings)
+		t.Errorf("findings = %+v, want 1 modified", findings)
 	}
 }
 
@@ -87,7 +87,7 @@ func TestCheckOutdated(t *testing.T) {
 
 	findings, _ := doctor.Check(src, m, skillsDir)
 	if len(findings) != 1 || findings[0].Status != doctor.StatusOutdated {
-		t.Errorf("findings = %+v, want 1 desactualizada", findings)
+		t.Errorf("findings = %+v, want 1 outdated", findings)
 	}
 }
 
@@ -102,6 +102,6 @@ func TestCheckNeverWrites(t *testing.T) {
 	}
 	after, _ := hashdir.Hash(skillsDir)
 	if before != after {
-		t.Error("Check() modificó el disco — jamás debe escribir")
+		t.Error("Check() modified disk — it must never write")
 	}
 }

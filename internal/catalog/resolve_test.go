@@ -25,12 +25,12 @@ func TestResolveSkills(t *testing.T) {
 		wantErr  string
 	}{
 		{
-			name:     "un perfil",
+			name:     "one profile",
 			profiles: []string{"core"},
 			want:     map[string]string{"git-conventions": "core", "code-review": "core"},
 		},
 		{
-			name:     "dedup: skill compartida queda con el primer perfil",
+			name:     "dedup: shared skill stays with first profile",
 			profiles: []string{"core", "tri"},
 			want: map[string]string{
 				"git-conventions": "core",
@@ -39,12 +39,12 @@ func TestResolveSkills(t *testing.T) {
 			},
 		},
 		{
-			name:     "perfil inexistente",
+			name:     "non-existent profile",
 			profiles: []string{"nope"},
-			wantErr:  `el perfil "nope" no existe`,
+			wantErr:  `profile "nope" does not exist`,
 		},
 		{
-			name:     "sin perfiles retorna mapa vacío",
+			name:     "no profiles returns empty map",
 			profiles: nil,
 			want:     map[string]string{},
 		},

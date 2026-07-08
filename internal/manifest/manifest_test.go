@@ -60,8 +60,8 @@ func TestLoadCorruptFails(t *testing.T) {
 	os.WriteFile(path, []byte("{corrupto"), 0o644)
 
 	_, err := manifest.Load(path)
-	if err == nil || !strings.Contains(err.Error(), "corrupto") {
-		t.Errorf("error = %v, want mensaje de manifiesto corrupto", err)
+	if err == nil || !strings.Contains(err.Error(), "corrupted") {
+		t.Errorf("error = %v, want corrupted manifest message", err)
 	}
 }
 

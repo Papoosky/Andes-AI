@@ -17,11 +17,11 @@ type LocalDir struct {
 func (l LocalDir) Load() (*Catalog, error) {
 	data, err := os.ReadFile(filepath.Join(l.Root, "catalog.json"))
 	if err != nil {
-		return nil, fmt.Errorf("no pude leer el catálogo en %s: verificá la ruta (%w)", l.Root, err)
+		return nil, fmt.Errorf("could not read the catalog at %s: check the path (%w)", l.Root, err)
 	}
 	var c Catalog
 	if err := json.Unmarshal(data, &c); err != nil {
-		return nil, fmt.Errorf("catalog.json inválido en %s: %w", l.Root, err)
+		return nil, fmt.Errorf("invalid catalog.json at %s: %w", l.Root, err)
 	}
 	if err := l.validate(&c); err != nil {
 		return nil, err
@@ -41,21 +41,21 @@ func (l LocalDir) validate(c *Catalog) error {
 		for _, id := range p.Skills {
 			if !validSkillID(id) {
 				problems = append(problems,
-					fmt.Sprintf("el perfil %q referencia la skill %q: id inválido (no puede contener separadores de ruta ni '..')", name, id))
+					fmt.Sprintf("profile %q references skill %q: invalid id (cannot contain path separators or '..')", name, id))
 				continue
 			}
 			skillMD := filepath.Join(l.SkillPath(id), "SKILL.md")
 			if _, err := os.Stat(skillMD); os.IsNotExist(err) {
 				problems = append(problems,
-					fmt.Sprintf("el perfil %q referencia la skill %q pero falta %s", name, id, skillMD))
+					fmt.Sprintf("profile %q references skill %q but %s is missing", name, id, skillMD))
 			} else if err != nil {
-				return fmt.Errorf("no pude verificar %s: %w", skillMD, err)
+				return fmt.Errorf("could not verify %s: %w", skillMD, err)
 			}
 		}
 	}
 	if len(problems) > 0 {
 		sort.Strings(problems)
-		return fmt.Errorf("catálogo inválido:\n  %s", strings.Join(problems, "\n  "))
+		return fmt.Errorf("invalid catalog:\n  %s", strings.Join(problems, "\n  "))
 	}
 	return nil
 }

@@ -15,7 +15,7 @@ import (
 func newDoctorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
-		Short: "Diagnostica drift entre manifiesto, disco y catálogo (no modifica nada)",
+		Short: "Diagnoses drift between manifest, disk and catalog (read-only)",
 		RunE:  runDoctor,
 	}
 }
@@ -30,12 +30,12 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if m == nil {
-		return errors.New("no hay manifiesto: nunca corriste `andes init`")
+		return errors.New("no manifest found: you have not run `andes init` yet")
 	}
 
 	src := catalog.LocalDir{Root: m.Catalog.Path}
 	if _, err := src.Load(); err != nil {
-		return fmt.Errorf("catálogo inaccesible en %s: corregí la ruta y re-corré `andes init --catalog <ruta>` (%w)",
+		return fmt.Errorf("catalog inaccessible at %s: fix the path and re-run `andes init --catalog <path>` (%w)",
 			m.Catalog.Path, err)
 	}
 
@@ -50,7 +50,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 
 	problems := 0
 	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "SKILL\tESTADO\tCONSEJO")
+	fmt.Fprintln(w, "SKILL\tSTATUS\tADVICE")
 	for _, f := range findings {
 		mark := "✓"
 		if f.Status != doctor.StatusOK {
@@ -62,8 +62,8 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	w.Flush()
 
 	if problems > 0 {
-		return fmt.Errorf("doctor encontró %d problema(s)", problems)
+		return fmt.Errorf("doctor found %d problem(s)", problems)
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), "Todo sano ✓")
+	fmt.Fprintln(cmd.OutOrStdout(), "All healthy ✓")
 	return nil
 }

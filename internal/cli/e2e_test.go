@@ -25,24 +25,24 @@ func TestEndToEnd(t *testing.T) {
 		t.Fatalf("list: %v\n%s", err, out)
 	}
 	if strings.Contains(out, "✗") {
-		t.Errorf("tras init completo no debería haber skills sin instalar:\n%s", out)
+		t.Errorf("after full init there should be no uninstalled skills:\n%s", out)
 	}
 
 	// 3. doctor healthy
 	if out, err = runAndes(t, home, "doctor"); err != nil {
-		t.Fatalf("doctor sano: %v\n%s", err, out)
+		t.Fatalf("healthy doctor: %v\n%s", err, out)
 	}
 
 	// 4. simulate local edit → doctor catches modified
 	skillMD := filepath.Join(home, ".claude", "skills", "golang", "SKILL.md")
-	os.WriteFile(skillMD, []byte("# tocado a mano"), 0o644)
+	os.WriteFile(skillMD, []byte("# manually edited"), 0o644)
 
 	out, err = runAndes(t, home, "doctor")
 	if err == nil {
-		t.Errorf("doctor debería detectar la skill modificada:\n%s", out)
+		t.Errorf("doctor should detect the modified skill:\n%s", out)
 	}
-	if !strings.Contains(out, "modificada") {
-		t.Errorf("doctor no clasificó como modificada:\n%s", out)
+	if !strings.Contains(out, "modified") {
+		t.Errorf("doctor did not classify as modified:\n%s", out)
 	}
 
 	// 5. re-init repairs
@@ -51,6 +51,6 @@ func TestEndToEnd(t *testing.T) {
 		t.Fatalf("re-init: %v\n%s", err, out)
 	}
 	if out, err = runAndes(t, home, "doctor"); err != nil {
-		t.Fatalf("doctor tras re-init debería estar sano: %v\n%s", err, out)
+		t.Fatalf("doctor after re-init should be healthy: %v\n%s", err, out)
 	}
 }

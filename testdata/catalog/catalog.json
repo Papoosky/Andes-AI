@@ -2,11 +2,11 @@
   "name": "andespath",
   "profiles": {
     "andespath-core": {
-      "description": "Baseline para todos en andespath",
+      "description": "Baseline for everyone at andespath",
       "skills": ["git-conventions", "code-review"]
     },
     "tri-fleet": {
-      "description": "Equipo TRI fleet manager",
+      "description": "TRI fleet manager team",
       "skills": ["golang"]
     }
   }
