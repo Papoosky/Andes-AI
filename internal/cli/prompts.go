@@ -3,7 +3,10 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 
@@ -14,15 +17,45 @@ func promptCatalogPath() (string, error) {
 	var path string
 	err := huh.NewInput().
 		Title("Where is the skills catalog?").
-		Description("Path to the folder containing catalog.json").
+		Description("The catalog is the source folder your skills are installed from — it contains a catalog.json (profiles) and a skills/ directory.\nTip: for the demo catalog use ./testdata/catalog").
 		Value(&path).
+		Validate(func(s string) error {
+			if strings.TrimSpace(s) == "" {
+				return errors.New("I need the catalog path to continue")
+			}
+
+			// Expand ~ to home directory
+			expanded := s
+			if strings.HasPrefix(s, "~/") {
+				home, err := os.UserHomeDir()
+				if err != nil {
+					return fmt.Errorf("could not expand home directory: %w", err)
+				}
+				expanded = filepath.Join(home, s[2:])
+			}
+
+			// Check if catalog.json exists
+			catalogFile := filepath.Join(expanded, "catalog.json")
+			if _, err := os.Stat(catalogFile); err != nil {
+				return fmt.Errorf("no catalog.json found in %q — point me at the folder that contains it", s)
+			}
+
+			return nil
+		}).
 		Run()
 	if err != nil {
 		return "", err
 	}
-	if path == "" {
-		return "", errors.New("catalog path is required to continue")
+
+	// Expand ~ in the final path before returning
+	if strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("could not expand home directory: %w", err)
+		}
+		path = filepath.Join(home, path[2:])
 	}
+
 	return path, nil
 }
 
