@@ -126,6 +126,35 @@ func TestInitWithoutYesAborts(t *testing.T) {
 	}
 }
 
+func TestInitFromGitCatalog(t *testing.T) {
+	home := t.TempDir()
+	repo, _ := gitFixture(t)
+	fileURL := "file://" + repo
+
+	out, err := runAndes(t, home,
+		"init", "--catalog", fileURL, "--profiles", "tri-fleet", "--yes")
+	if err != nil {
+		t.Fatalf("init from git: %v\n%s", err, out)
+	}
+
+	// Skills installed.
+	if _, err := os.Stat(filepath.Join(home, ".claude", "skills", "golang", "SKILL.md")); err != nil {
+		t.Errorf("skill not installed: %v", err)
+	}
+	// Mirror created under ~/.andes/catalog.
+	if _, err := os.Stat(filepath.Join(home, ".andes", "catalog", "catalog", "catalog.json")); err != nil {
+		t.Errorf("managed mirror missing: %v", err)
+	}
+	// Manifest has git type + 40-char ref.
+	m, err := manifest.Load(filepath.Join(home, ".claude", "andes.json"))
+	if err != nil || m == nil {
+		t.Fatal(err)
+	}
+	if m.Catalog.Type != "git" || m.Catalog.URL != fileURL || len(m.Catalog.Ref) != 40 {
+		t.Errorf("manifest catalog = %+v", m.Catalog)
+	}
+}
+
 func TestInitDoesNotTouchForeignSkills(t *testing.T) {
 	home := t.TempDir()
 	foreign := filepath.Join(home, ".claude", "skills", "mi-skill-personal")

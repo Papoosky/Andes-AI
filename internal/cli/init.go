@@ -3,7 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -24,7 +24,7 @@ func newInitCmd() *cobra.Command {
 			return runInit(cmd, catalogPath, profiles, yes)
 		},
 	}
-	cmd.Flags().StringVar(&catalogPath, "catalog", "", "path to the catalog folder")
+	cmd.Flags().StringVar(&catalogPath, "catalog", "", "path or git URL of the catalog")
 	cmd.Flags().StringSliceVar(&profiles, "profiles", nil, "profiles to install (e.g.: andespath-core,tri-fleet)")
 	cmd.Flags().BoolVar(&yes, "yes", false, "apply without confirmation prompt")
 	return cmd
@@ -40,21 +40,18 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 		return err
 	}
 
-	// Resolve catalog path: flag → previous manifest → prompt (Task 11).
-	if catalogPath == "" && prev != nil {
-		catalogPath = prev.Catalog.Path
+	src, catRef, err := resolveSource(catalogPath, prev, yes)
+	if err != nil {
+		return err
 	}
-	if catalogPath == "" {
-		if yes {
-			return errors.New("catalog location unknown: pass --catalog <path>")
+	if g, ok := src.(catalog.GitRepo); ok {
+		if _, statErr := os.Stat(g.Dir); statErr != nil {
+			fmt.Fprintln(cmd.OutOrStdout(), "Fetching the andespath catalog…")
 		}
-		catalogPath, err = promptCatalogPath()
-		if err != nil {
+		if err := g.Ensure(); err != nil {
 			return err
 		}
 	}
-
-	src := catalog.LocalDir{Root: catalogPath}
 	cat, err := src.Load()
 	if err != nil {
 		return err
@@ -104,13 +101,13 @@ func runInit(cmd *cobra.Command, catalogPath string, profiles []string, yes bool
 		return err
 	}
 
-	absCatalog, err := filepath.Abs(catalogPath)
+	catRef, err = finalizeRef(src, catRef)
 	if err != nil {
 		return err
 	}
 	next := &manifest.Manifest{
 		Version:   1,
-		Catalog:   manifest.CatalogRef{Type: "local", Path: absCatalog},
+		Catalog:   catRef,
 		Profiles:  profiles,
 		Installed: installed,
 	}
