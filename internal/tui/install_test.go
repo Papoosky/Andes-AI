@@ -7,6 +7,40 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// TestCatalogInputThreadsPathToFunc verifies C1: when the user types a catalog
+// path on ScreenInstallCatalog and presses Enter, the injected catalogProfiles
+// func is called with THAT path (not "").
+func TestCatalogInputThreadsPathToFunc(t *testing.T) {
+	var gotOverride string
+	fakeCatalogProfiles := func(override string) ([]string, map[string]string, []string, bool, error) {
+		gotOverride = override
+		// Return a valid catalog so the flow advances to ScreenInstallProfiles.
+		return []string{"test-profile"}, map[string]string{"test-profile": "desc"}, nil, true, nil
+	}
+
+	m := New(nil, nil, fakeCatalogProfiles, nil)
+	m.screen = ScreenInstallCatalog
+	// Simulate the textinput having a value — set it directly.
+	ti := m.catInput
+	ti.SetValue("/tmp/my-catalog")
+	m.catInput = ti
+
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil {
+		t.Fatal("Enter on catalog screen should dispatch a Cmd")
+	}
+
+	// Execute the cmd — it calls catalogProfiles(override) and returns an installProfilesMsg.
+	msg := cmd()
+	if _, ok := msg.(installProfilesMsg); !ok {
+		t.Fatalf("expected installProfilesMsg, got %T", msg)
+	}
+
+	if gotOverride != "/tmp/my-catalog" {
+		t.Errorf("catalogProfiles called with override=%q, want %q", gotOverride, "/tmp/my-catalog")
+	}
+}
+
 func TestInstallPlanConfirmRunsApply(t *testing.T) {
 	called := false
 	m := New(func() *cobra.Command { return &cobra.Command{Use: "andes"} }, nil, nil, nil)

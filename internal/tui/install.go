@@ -10,6 +10,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// enterCatalogScreen sets up the catalog text input and returns the model plus
+// a blink command so the cursor starts blinking immediately.
+func enterCatalogScreen(m Model) (Model, tea.Cmd) {
+	ti := textinput.New()
+	ti.Placeholder = "git URL or local path"
+	ti.Focus()
+	m.catInput = ti
+	m.screen = ScreenInstallCatalog
+	return m, textinput.Blink
+}
+
 // ── Messages ───────────────────────────────────────────────────────────────
 
 // installProfilesMsg is returned by the catalogProfiles command and carries
@@ -41,7 +52,7 @@ func (m Model) startInstall() (tea.Model, tea.Cmd) {
 	}
 	cp := m.catalogProfiles
 	return m, func() tea.Msg {
-		names, descs, installed, catalogKnown, err := cp()
+		names, descs, installed, catalogKnown, err := cp("")
 		return installProfilesMsg{
 			names:        names,
 			descs:        descs,
@@ -61,12 +72,7 @@ func (m Model) handleInstallProfilesMsg(msg installProfilesMsg) (tea.Model, tea.
 	if msg.err != nil {
 		m.installErr = msg.err
 		// Fall back to catalog input so the user can provide a path.
-		ti := textinput.New()
-		ti.Placeholder = "git URL or local path"
-		ti.Focus()
-		m.catInput = ti
-		m.screen = ScreenInstallCatalog
-		return m, nil
+		return enterCatalogScreen(m)
 	}
 
 	// Sort names for stable ordering.
@@ -91,12 +97,7 @@ func (m Model) handleInstallProfilesMsg(msg installProfilesMsg) (tea.Model, tea.
 	m.profileCursor = 0
 
 	if !msg.catalogKnown {
-		ti := textinput.New()
-		ti.Placeholder = "git URL or local path"
-		ti.Focus()
-		m.catInput = ti
-		m.screen = ScreenInstallCatalog
-		return m, nil
+		return enterCatalogScreen(m)
 	}
 
 	m.screen = ScreenInstallProfiles
@@ -212,18 +213,21 @@ func (m Model) updateInstallCatalog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if path == "" {
 			return m, nil
 		}
-		// Re-run catalogProfiles. Task 3 will thread the entered path through
-		// the callback. For now, just re-trigger and force catalogKnown=true so
-		// we advance to the profiles screen.
+		// Re-run catalogProfiles with the typed path so the real catalog is
+		// loaded. The result drives advancement: if the path resolves to a valid
+		// catalog, catalogKnown=true and real profiles are returned → the
+		// installProfilesMsg handler advances to ScreenInstallProfiles. If it
+		// errors, the error is surfaced on the catalog screen.
 		if m.catalogProfiles != nil {
 			cp := m.catalogProfiles
+			override := path
 			return m, func() tea.Msg {
-				names, descs, installed, _, err := cp()
+				names, descs, installed, catalogKnown, err := cp(override)
 				return installProfilesMsg{
 					names:        names,
 					descs:        descs,
 					installed:    installed,
-					catalogKnown: true,
+					catalogKnown: catalogKnown,
 					err:          err,
 				}
 			}
@@ -259,7 +263,7 @@ func (m Model) viewInstallCatalog() string {
 	sb.WriteString(m.catInput.View())
 
 	if m.installErr != nil {
-		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#eb6f92"))
+		errStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ColorRose))
 		sb.WriteString("\n\n")
 		sb.WriteString(errStyle.Render("Error: " + m.installErr.Error()))
 	}

@@ -72,7 +72,7 @@ type UpdateCheck func() FreshnessMsg
 // returns sorted profile names, their descriptions, the currently-installed
 // profile set, and whether the catalog location is already known (so the
 // flow can skip the catalog-input screen).
-type CatalogProfilesFunc func() (names []string, descs map[string]string, installed []string, catalogKnown bool, err error)
+type CatalogProfilesFunc func(catalogOverride string) (names []string, descs map[string]string, installed []string, catalogKnown bool, err error)
 
 // ApplyInstallFunc is injected from cli. It resolves the catalog source,
 // plans and applies the install in-process (no confirmation prompts — the
@@ -199,6 +199,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateInstallProfiles(msg)
 		case ScreenInstallPlan:
 			return m.updateInstallPlan(msg)
+		}
+
+	default:
+		// Forward non-key messages to the catalog text input so the cursor
+		// blinks and window-size changes are handled correctly.
+		if m.screen == ScreenInstallCatalog {
+			var cmd tea.Cmd
+			m.catInput, cmd = m.catInput.Update(msg)
+			return m, cmd
 		}
 	}
 	return m, nil

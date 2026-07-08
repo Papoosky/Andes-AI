@@ -11,7 +11,7 @@ import (
 // catalog using the same logic as runInstall (manifest → baked default →
 // unknown). It is injected into the TUI model so tui stays decoupled from cli.
 func buildCatalogProfilesFunc() tui.CatalogProfilesFunc {
-	return func() (names []string, descs map[string]string, installed []string, catalogKnown bool, err error) {
+	return func(catalogOverride string) (names []string, descs map[string]string, installed []string, catalogKnown bool, err error) {
 		mPath, err := manifest.DefaultPath()
 		if err != nil {
 			return nil, nil, nil, false, err
@@ -19,6 +19,31 @@ func buildCatalogProfilesFunc() tui.CatalogProfilesFunc {
 		prev, err := manifest.Load(mPath)
 		if err != nil {
 			return nil, nil, nil, false, err
+		}
+
+		// When the user typed a path/URL, use it directly — skip the
+		// knownSrc check and let resolveSource handle it.
+		if catalogOverride != "" {
+			src, _, err := resolveSource(catalogOverride, prev, true)
+			if err != nil {
+				return nil, nil, nil, false, err
+			}
+			cat, err := src.Load()
+			if err != nil {
+				return nil, nil, nil, false, err
+			}
+			profileNames := make([]string, 0, len(cat.Profiles))
+			profileDescs := make(map[string]string, len(cat.Profiles))
+			for name, profile := range cat.Profiles {
+				profileNames = append(profileNames, name)
+				profileDescs[name] = profile.Description
+			}
+			sort.Strings(profileNames)
+			var installedProfiles []string
+			if prev != nil {
+				installedProfiles = prev.Profiles
+			}
+			return profileNames, profileDescs, installedProfiles, true, nil
 		}
 
 		// Determine whether the catalog location is already known (manifest or
@@ -37,7 +62,7 @@ func buildCatalogProfilesFunc() tui.CatalogProfilesFunc {
 			return nil, nil, nil, false, nil
 		}
 
-		// Load the catalog — yes flag=false (non-interactive here; errors surface to TUI).
+		// Load the catalog — yes flag=true (non-interactive here; errors surface to TUI).
 		src, _, err := resolveSource("", prev, true)
 		if err != nil {
 			return nil, nil, nil, false, err
