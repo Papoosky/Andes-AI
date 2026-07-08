@@ -4,24 +4,17 @@ import (
 	"strings"
 
 	"github.com/andespath/andes-ai/internal/logo"
+	"github.com/andespath/andes-ai/internal/theme"
 	"github.com/charmbracelet/lipgloss"
-)
-
-// Palette — consistent with logo gradient.
-const (
-	colorSnow     = "#e0def4" // bold title, headings
-	colorIce      = "#9ccfd8" // command names (highlight)
-	colorDeepBlue = "#31748f" // borders
-	colorSlate    = "#6e6a86" // muted text, footer, descriptions
 )
 
 // renderBanner assembles the full andes welcome banner and wraps it in a
 // double-border box styled with the Andean cold palette.
 func renderBanner() string {
-	bold := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorSnow))
-	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(colorSlate))
-	cmdName := lipgloss.NewStyle().Foreground(lipgloss.Color(colorIce))
-	heading := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorSnow))
+	bold := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(theme.ColorSnow))
+	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ColorSlate))
+	cmdName := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ColorIce))
+	heading := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(theme.ColorSnow))
 
 	// Command list — name in highlight color, description muted
 	type entry struct{ name, desc string }
@@ -75,11 +68,5 @@ func renderBanner() string {
 	sb.WriteString(muted.Render("run andes <command> --help for details"))
 	sb.WriteRune('\n')
 
-	// Wrap in a double-border box
-	box := lipgloss.NewStyle().
-		Border(lipgloss.DoubleBorder()).
-		BorderForeground(lipgloss.Color(colorDeepBlue)).
-		Padding(0, 2)
-
-	return box.Render(sb.String())
+	return theme.Frame().Render(sb.String())
 }

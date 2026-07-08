@@ -264,3 +264,34 @@ func TestPressUWithNilRootIsSafe(t *testing.T) {
 		t.Error("u with nil root factory should be a no-op, not a panic or dispatch")
 	}
 }
+
+// ── Frame tests ───────────────────────────────────────────────────────────────
+
+// TestMenuAndOutputAreFramed verifies that both TUI screens are wrapped in the
+// shared DoubleBorder frame. We drive a WindowSizeMsg first so the viewport is
+// sized, then assert the top-left corner rune of a DoubleBorder (╔) is present.
+func TestMenuAndOutputAreFramed(t *testing.T) {
+	const doubleBorderCorner = "╔"
+
+	// Give the model a real terminal size so sizing paths are exercised.
+	m := New(nil, nil)
+	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m = sized.(Model)
+
+	// ScreenMenu
+	menuView := m.View()
+	if !strings.Contains(menuView, doubleBorderCorner) {
+		t.Errorf("ScreenMenu View() missing DoubleBorder corner rune %q", doubleBorderCorner)
+	}
+
+	// ScreenOutput — switch via a cmdResultMsg to populate the viewport.
+	switched, _ := m.Update(cmdResultMsg{cmdID: "list", output: "skill-a\nskill-b\n"})
+	m = switched.(Model)
+	if m.screen != ScreenOutput {
+		t.Fatal("expected ScreenOutput after cmdResultMsg")
+	}
+	outputView := m.View()
+	if !strings.Contains(outputView, doubleBorderCorner) {
+		t.Errorf("ScreenOutput View() missing DoubleBorder corner rune %q", doubleBorderCorner)
+	}
+}

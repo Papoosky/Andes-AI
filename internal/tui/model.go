@@ -12,19 +12,11 @@ import (
 	"strings"
 
 	"github.com/andespath/andes-ai/internal/logo"
+	"github.com/andespath/andes-ai/internal/theme"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
-)
-
-// ── Palette (mirrors banner.go) ────────────────────────────────────────────
-
-const (
-	colorSnow     = "#e0def4"
-	colorIce      = "#9ccfd8"
-	colorDeepBlue = "#31748f"
-	colorSlate    = "#6e6a86"
 )
 
 // ── Screens ────────────────────────────────────────────────────────────────
@@ -124,8 +116,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.vp.Width = msg.Width
-		m.vp.Height = msg.Height - 4 // leave room for header/footer
+		// Frame: DoubleBorder eats 2 cols (left+right borders) + Padding(0,2)
+		// eats 4 cols (2 each side) = 6 cols total horizontal overhead.
+		// Vertical: DoubleBorder eats 2 rows (top+bottom borders).
+		// Inside the output frame: header (2 lines) + footer (2 lines) = 4 rows.
+		vpWidth := msg.Width - 6
+		if vpWidth < 20 {
+			vpWidth = 20
+		}
+		vpHeight := msg.Height - 6 // 2 border + 2 header + 2 footer
+		if vpHeight < 3 {
+			vpHeight = 3
+		}
+		m.vp.Width = vpWidth
+		m.vp.Height = vpHeight
 		return m, nil
 
 	case FreshnessMsg:
@@ -271,9 +275,9 @@ func (m Model) View() string {
 }
 
 func (m Model) viewMenu() string {
-	bold := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorSnow))
-	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(colorSlate))
-	selected := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorIce))
+	bold := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(theme.ColorSnow))
+	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ColorSlate))
+	selected := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(theme.ColorIce))
 	warn := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#f6c177"))
 
 	var sb strings.Builder
@@ -314,16 +318,16 @@ func (m Model) viewMenu() string {
 	sb.WriteString(muted.Render(footer))
 	sb.WriteRune('\n')
 
-	return sb.String()
+	return theme.Frame().Render(sb.String())
 }
 
 func (m Model) viewOutput() string {
-	bold := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(colorSnow))
-	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(colorSlate))
+	bold := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(theme.ColorSnow))
+	muted := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ColorSlate))
 
 	var sb strings.Builder
 
-	// Header.
+	// Header — matches menu title style: bold snow "andes <cmd>".
 	sb.WriteString(bold.Render("andes " + m.cmdTitle))
 	sb.WriteString("\n\n")
 
@@ -331,11 +335,11 @@ func (m Model) viewOutput() string {
 	sb.WriteString(m.vp.View())
 	sb.WriteRune('\n')
 
-	// Footer.
+	// Footer — muted, consistent with menu footer.
 	sb.WriteString(muted.Render("esc: back • q: quit"))
 	sb.WriteRune('\n')
 
-	return sb.String()
+	return theme.Frame().Render(sb.String())
 }
 
 // ── Entry point ────────────────────────────────────────────────────────────
