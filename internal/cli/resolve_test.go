@@ -12,6 +12,8 @@ func TestIsGitURL(t *testing.T) {
 		{"https://github.com/andespath/andes-ai", true},
 		{"ssh://git@github.com/x/y", true},
 		{"file:///tmp/some-repo", true},
+		{"/abs/path/ending.git", true}, // known edge: local bare repo — use file:// instead
+		{"http://github.com/x/y", true},
 		{"./catalog", false},
 		{"/abs/path/catalog", false},
 		{"", false},

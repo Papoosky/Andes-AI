@@ -24,6 +24,10 @@ func isGitURL(s string) bool {
 		strings.HasPrefix(s, "http://") ||
 		strings.HasPrefix(s, "ssh://") ||
 		strings.HasPrefix(s, "file://") ||
+		// Note: a LOCAL path ending in .git (a bare repo on disk) is also routed
+		// to the git source. That is intentional — use file:// for local bare
+		// repos; plain directories never end in .git in practice. Do not remove
+		// the suffix check: scheme-less remotes like github.com/x/y.git rely on it.
 		strings.HasSuffix(s, ".git")
 }
 
