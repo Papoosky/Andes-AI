@@ -82,19 +82,35 @@ func installAndSave(cmd *cobra.Command, src catalog.Source, cat *catalog.Catalog
 		return err
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), "Plan:")
+	// Count non-skip actions (installs or updates)
+	changeCount := 0
 	for _, a := range actions {
-		fmt.Fprintf(cmd.OutOrStdout(), "  %-12s %s\n", a.Type, a.SkillID)
+		if a.Type != installer.ActionSkip {
+			changeCount++
+		}
 	}
 
-	if !yes {
-		ok, err := confirmPlan()
-		if err != nil {
-			return err
+	// If plan shows no installs or updates, skip confirmation and the plan display.
+	// Note: Apply will still run (it repairs locally modified skills even if Plan marked them skip),
+	// but we won't bother asking for confirmation.
+	if changeCount == 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), "Everything is already up to date.")
+		// Skip straight to Apply (it will check disk state and repair if needed)
+	} else {
+		fmt.Fprintln(cmd.OutOrStdout(), "Plan:")
+		for _, a := range actions {
+			fmt.Fprintf(cmd.OutOrStdout(), "  %-12s %s\n", a.Type, a.SkillID)
 		}
-		if !ok {
-			fmt.Fprintln(cmd.OutOrStdout(), "Aborted — nothing was touched.")
-			return nil
+
+		if !yes {
+			ok, err := confirmPlan()
+			if err != nil {
+				return err
+			}
+			if !ok {
+				fmt.Fprintln(cmd.OutOrStdout(), "Aborted — nothing was touched.")
+				return nil
+			}
 		}
 	}
 

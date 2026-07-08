@@ -73,8 +73,8 @@ func TestInitIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("second init failed: %v", err)
 	}
-	if !bytes.Contains([]byte(out), []byte("unchanged")) {
-		t.Errorf("second init should report 'unchanged':\n%s", out)
+	if !bytes.Contains([]byte(out), []byte("Everything is already up to date.")) {
+		t.Errorf("second init should report 'Everything is already up to date.':\n%s", out)
 	}
 }
 
