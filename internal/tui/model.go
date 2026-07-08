@@ -116,15 +116,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		// Frame: DoubleBorder eats 2 cols (left+right borders) + Padding(0,2)
-		// eats 4 cols (2 each side) = 6 cols total horizontal overhead.
-		// Vertical: DoubleBorder eats 2 rows (top+bottom borders).
-		// Inside the output frame: header (2 lines) + footer (2 lines) = 4 rows.
 		vpWidth := msg.Width - 6
+		if vpWidth > 100 {
+			vpWidth = 100
+		}
 		if vpWidth < 20 {
 			vpWidth = 20
 		}
-		vpHeight := msg.Height - 6 // 2 border + 2 header + 2 footer
+		vpHeight := msg.Height - 6
 		if vpHeight < 3 {
 			vpHeight = 3
 		}
@@ -282,8 +281,6 @@ func (m Model) viewMenu() string {
 
 	var sb strings.Builder
 
-	// Compute inner width for logo: frame has DoubleBorder (2 cols) + Padding(0,2) (4 cols) = 6 cols overhead.
-	// Before first WindowSizeMsg, m.width == 0; fall back to 50 for tests without a size msg.
 	logoWidth := m.width - 6
 	if logoWidth < 20 {
 		logoWidth = 50
@@ -325,13 +322,6 @@ func (m Model) viewMenu() string {
 	sb.WriteString(muted.Render(footer))
 	sb.WriteRune('\n')
 
-	// Apply frame with fixed width to match terminal width.
-	// lipgloss .Width(n) applies to the inner content; borders are added on top.
-	// DoubleBorder adds 2 cols, so we pass (m.width - 2) to get outer width = m.width.
-	// Before first WindowSizeMsg, m.width == 0; render without Width constraint (fallback).
-	if m.width > 0 {
-		return theme.Frame().Width(m.width - 2).Render(sb.String())
-	}
 	return theme.Frame().Render(sb.String())
 }
 
@@ -353,13 +343,6 @@ func (m Model) viewOutput() string {
 	sb.WriteString(muted.Render("esc: back • q: quit"))
 	sb.WriteRune('\n')
 
-	// Apply frame with fixed width to match terminal width.
-	// lipgloss .Width(n) applies to the inner content; borders are added on top.
-	// DoubleBorder adds 2 cols, so we pass (m.width - 2) to get outer width = m.width.
-	// Before first WindowSizeMsg, m.width == 0; render without Width constraint (fallback).
-	if m.width > 0 {
-		return theme.Frame().Width(m.width - 2).Render(sb.String())
-	}
 	return theme.Frame().Render(sb.String())
 }
 

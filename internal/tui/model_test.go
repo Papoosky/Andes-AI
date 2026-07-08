@@ -297,42 +297,39 @@ func TestMenuAndOutputAreFramed(t *testing.T) {
 	}
 }
 
-// TestBoxWidthStableAcrossScreens verifies that both ScreenMenu and ScreenOutput
-// render boxes of the same width after a WindowSizeMsg. This ensures the bordered
-// rectangle doesn't resize when navigating between screens.
+// TestBoxWidthStableAcrossScreens verifies that both TUI screens render a closed
+// DoubleBorder and that neither box exceeds the terminal width (content-hugging mode).
 func TestBoxWidthStableAcrossScreens(t *testing.T) {
-	// Create a model and size it to 80x24.
+	const termWidth = 80
+
 	m := New(nil, nil)
-	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	sized, _ := m.Update(tea.WindowSizeMsg{Width: termWidth, Height: 24})
 	m = sized.(Model)
 
-	// Render ScreenMenu.
 	menuView := m.View()
-	menuWidth := lipgloss.Width(menuView)
+	if !strings.Contains(menuView, "╔") {
+		t.Error("ScreenMenu missing DoubleBorder top-left corner ╔")
+	}
+	if !strings.Contains(menuView, "╚") {
+		t.Error("ScreenMenu missing DoubleBorder bottom-left corner ╚")
+	}
+	if w := lipgloss.Width(menuView); w > termWidth {
+		t.Errorf("ScreenMenu box width %d exceeds terminal width %d", w, termWidth)
+	}
 
-	// Switch to ScreenOutput via a cmdResultMsg.
 	switched, _ := m.Update(cmdResultMsg{cmdID: "list", output: "test output\n"})
 	m = switched.(Model)
-
-	// Render ScreenOutput.
 	outputView := m.View()
-	outputWidth := lipgloss.Width(outputView)
-
-	// Both screens must render to the same width (80 cols in this case).
-	if menuWidth != outputWidth {
-		t.Errorf("box width mismatch: ScreenMenu=%d cols, ScreenOutput=%d cols, expected both=%d",
-			menuWidth, outputWidth, 80)
+	if !strings.Contains(outputView, "╔") {
+		t.Error("ScreenOutput missing DoubleBorder top-left corner ╔")
+	}
+	if !strings.Contains(outputView, "╚") {
+		t.Error("ScreenOutput missing DoubleBorder bottom-left corner ╚")
+	}
+	if w := lipgloss.Width(outputView); w > termWidth {
+		t.Errorf("ScreenOutput box width %d exceeds terminal width %d", w, termWidth)
 	}
 
-	if menuWidth != 80 {
-		t.Errorf("ScreenMenu box width: got %d, expected 80", menuWidth)
-	}
-
-	if outputWidth != 80 {
-		t.Errorf("ScreenOutput box width: got %d, expected 80", outputWidth)
-	}
-
-	t.Logf("Both screens render stable 80-col box ✓\n")
 	t.Logf("ScreenMenu (first 3 lines):\n%s\n", strings.Join(strings.Split(menuView, "\n")[:3], "\n"))
 	t.Logf("ScreenOutput (first 3 lines):\n%s\n", strings.Join(strings.Split(outputView, "\n")[:3], "\n"))
 }

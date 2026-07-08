@@ -6,27 +6,30 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// logoLines holds the braille mountain-range silhouette.
-// Generated from a 70×20 bitmap (braille: 2×4 dots per char).
-// Peaks: one tall off-center-left, two smaller peaks right.
-// Lines are stored trimmed (no trailing blank braille); centering is
-// applied at render time against the banner's inner width.
+// logoLines holds the braille silhouette of the Andespath company logo.
+// Generated via: chafa -f symbols --symbols braille -c none --size 32x16 ap-min-logo-background-500x500.png
+// Trimmed to first/last non-blank rows; centering applied at render time.
 var logoLines = []string{
-	"⠀⠀⠀⠀⠀⠀⠀⠀⢀⣄",
-	"⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⣠⡀⠀⠀⠀⢀⣄",
-	"⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣷⣄⣀⣀⣀⣠⣾⣿⣿⣦⣀⣴⣿⣿⣷⣄⣀",
-	"⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
-	"⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿",
+	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣤⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣷⠀⠀⠀⢀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+	"⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣿⣷⣶⣾⣿⣿⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀",
+	"⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠀⠀⠀⠀⠀⠀⠀⠀",
+	"⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣆⠀⠀⠀⠀⠀⠀⠀",
+	"⠀⠀⠀⠀⠀⠀⢠⣿⣿⣿⣿⣿⡿⠿⠛⠋⠉⠙⠛⠻⠿⢿⣿⣿⣿⠂⠀⠀⠀⠀⠀⠀",
+	"⠀⠀⠀⠀⠀⠀⠀⠙⠟⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠁⠀⠀⠀⠀⠀⠀⠀",
 }
 
 // gradientColors defines the Andean cold palette applied top-to-bottom.
-// Band assignment: row 0 = snow-white, rows 1-2 = ice, row 3 = deep-blue, row 4 = slate.
 var gradientColors = []string{
 	"#e0def4", // snow white  — top peak / sky
-	"#9ccfd8", // ice blue    — upper slopes
+	"#c5e8ed", // light ice   — upper slopes
+	"#9ccfd8", // ice blue    — upper-mid slopes
 	"#9ccfd8", // ice blue    — mid slopes
-	"#31748f", // deep blue   — lower slopes
-	"#6e6a86", // slate       — base / foothills
+	"#56a0bc", // mid blue    — lower slopes
+	"#31748f", // deep blue   — base
+	"#6e6a86", // slate       — foothills
+	"#6e6a86", // slate       — bottom detail
 }
 
 // Render applies a top-to-bottom gradient over the braille logo rows and
