@@ -82,11 +82,19 @@ type CatalogProfilesFunc func(catalogOverride string) (names []string, descs map
 // tui never imports cli; the func value is injected.
 type ApplyInstallFunc func(catalogOverride string, profiles []string) (summary string, err error)
 
+// PlanItem is one planned skill action shown on the Review screen. It mirrors
+// installer.Action but lives in tui so tui stays decoupled from installer.
+type PlanItem struct {
+	SkillID string
+	Action  string // "install" | "update" | "unchanged"
+	Profile string
+}
+
 // PlanInstallFunc is injected from cli. It resolves the catalog source and
-// runs installer.Plan without applying — used to compute preview counts shown
-// on the plan screen before the user confirms. Returns (install, update,
-// unchanged, err).
-type PlanInstallFunc func(catalogOverride string, profiles []string) (install, update, unchanged int, err error)
+// runs installer.Plan without applying — used to preview the per-skill plan
+// shown on the Review screen before the user confirms. Counts are derived from
+// the returned items.
+type PlanInstallFunc func(catalogOverride string, profiles []string) ([]PlanItem, error)
 
 // Model holds all TUI state. newRoot is a factory used to build a fresh
 // cobra command for in-process execution — this breaks the cli→tui import
@@ -117,9 +125,7 @@ type Model struct {
 	selectedProfiles []string
 	catalogOverride  string
 	installing       bool
-	planInstallCount int
-	planUpdateCount  int
-	planUnchangedCnt int
+	planItems        []PlanItem
 	installErr       error
 }
 
@@ -201,9 +207,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case planDoneMsg:
 		if msg.err == nil {
-			m.planInstallCount = msg.install
-			m.planUpdateCount = msg.update
-			m.planUnchangedCnt = msg.unchanged
+			m.planItems = msg.items
 		}
 		return m, nil
 

@@ -97,7 +97,7 @@ func installAndSave(cmd *cobra.Command, src catalog.Source, cat *catalog.Catalog
 	} else {
 		fmt.Fprintln(cmd.OutOrStdout(), "Plan:")
 		for _, a := range actions {
-			fmt.Fprintf(cmd.OutOrStdout(), "  %-12s %s\n", a.Type, a.SkillID)
+			fmt.Fprintf(cmd.OutOrStdout(), "  %-12s %s  (%s)\n", a.Type, a.SkillID, a.Profile)
 		}
 
 		if !yes {

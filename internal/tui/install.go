@@ -48,10 +48,8 @@ type installDoneMsg struct {
 
 // planDoneMsg carries the result of a plan preview computation.
 type planDoneMsg struct {
-	install   int
-	update    int
-	unchanged int
-	err       error
+	items []PlanItem
+	err   error
 }
 
 // ── Entry: startInstall ────────────────────────────────────────────────────
@@ -175,8 +173,8 @@ func (m Model) updateInstallProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			override := m.catalogOverride
 			profiles := selected
 			return m, func() tea.Msg {
-				inst, upd, unch, err := pf(override, profiles)
-				return planDoneMsg{install: inst, update: upd, unchanged: unch, err: err}
+				items, err := pf(override, profiles)
+				return planDoneMsg{items: items, err: err}
 			}
 		}
 
@@ -361,12 +359,32 @@ func (m Model) viewInstallPlan() string {
 		sb.WriteRune('\n')
 	}
 
-	// Show plan counts if available (Important 5).
-	if m.planInstallCount+m.planUpdateCount+m.planUnchangedCnt > 0 || m.planInstallCount == 0 {
+	// List the individual skills the plan will touch, with action + profile.
+	if len(m.planItems) > 0 {
 		sb.WriteString("\n")
-		sb.WriteString(muted.Render(fmt.Sprintf("%d to install, %d to update, %d unchanged",
-			m.planInstallCount, m.planUpdateCount, m.planUnchangedCnt)))
+		sb.WriteString(muted.Render("Skills:"))
+		sb.WriteString("\n")
+		for _, it := range m.planItems {
+			sb.WriteString(muted.Render(fmt.Sprintf("  %-9s %s  (%s)", it.Action, it.SkillID, it.Profile)))
+			sb.WriteRune('\n')
+		}
 	}
+
+	// Derived counts summary.
+	nInstall, nUpdate, nUnchanged := 0, 0, 0
+	for _, it := range m.planItems {
+		switch it.Action {
+		case "install":
+			nInstall++
+		case "update":
+			nUpdate++
+		default:
+			nUnchanged++
+		}
+	}
+	sb.WriteString("\n")
+	sb.WriteString(muted.Render(fmt.Sprintf("%d to install, %d to update, %d unchanged",
+		nInstall, nUpdate, nUnchanged)))
 
 	sb.WriteString("\n\n")
 	if m.installing {

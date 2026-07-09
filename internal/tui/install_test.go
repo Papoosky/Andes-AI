@@ -61,6 +61,34 @@ func TestInstallPlanConfirmRunsApply(t *testing.T) {
 	}
 }
 
+// TestInstallPlanShowsSkillNames verifies the Review screen lists the actual
+// skill names (with action + profile), not just profile counts.
+func TestInstallPlanShowsSkillNames(t *testing.T) {
+	m := New(nil, nil, nil, nil, nil)
+	sized, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
+	m = sized.(Model)
+	m.screen = ScreenInstallPlan
+	m.selectedProfiles = []string{"tri-fleet", "andespath-core"}
+
+	m2, _ := m.Update(planDoneMsg{items: []PlanItem{
+		{SkillID: "golang", Action: "install", Profile: "tri-fleet"},
+		{SkillID: "git-conventions", Action: "unchanged", Profile: "andespath-core"},
+	}})
+	mm := m2.(Model)
+
+	view := mm.View()
+	if !contains(view, "golang") {
+		t.Errorf("Review must show skill name 'golang':\n%s", view)
+	}
+	if !contains(view, "git-conventions") {
+		t.Errorf("Review must show skill name 'git-conventions':\n%s", view)
+	}
+	// Still shows the derived counts.
+	if !contains(view, "1 to install") {
+		t.Errorf("Review must still show derived counts:\n%s", view)
+	}
+}
+
 func TestInstallDoneShowsOutput(t *testing.T) {
 	m := New(nil, nil, nil, nil, nil)
 	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
