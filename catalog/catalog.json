@@ -7,7 +7,7 @@
     },
     "tri-fleet": {
       "description": "TRI fleet manager team",
-      "skills": ["golang"]
+      "skills": ["golang", "golang-testng"]
     }
   }
 }
