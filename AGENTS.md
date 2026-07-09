@@ -87,7 +87,13 @@ The `ci` workflow (`.github/workflows/ci.yml`) runs on every PR to `main`:
 both code PRs and skill PRs — a code-only PR passes `validate` trivially because
 the catalog is unchanged. All three steps must pass to merge.
 
-`.github/workflows/release.yml` builds multi-OS/arch binaries on tag push.
+Releases are automated with **release-please** (`.github/workflows/release-please.yml`).
+It reads the Conventional Commits on `main` and keeps a **Release PR** open with
+the next version bump + `CHANGELOG.md`. Merging that PR creates the git tag and
+GitHub Release; the workflow then builds the multi-OS/arch binaries and uploads
+them as release assets. Version state lives in `.release-please-manifest.json`;
+config in `release-please-config.json`. You never tag by hand — you merge the
+Release PR when you want to ship.
 
 ## Conventions
 

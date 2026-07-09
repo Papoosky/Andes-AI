@@ -1,0 +1,48 @@
+name: release-please
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      # Maintains a Release PR (version bump + CHANGELOG) from the Conventional
+      # Commits on main. Merging that PR creates the tag + GitHub Release and
+      # sets release_created=true, which gates the build job below.
+      - uses: googleapis/release-please-action@v4
+        id: rp
+
+  build:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - name: Test
+        run: go test ./...
+      - name: Build matrix
+        env:
+          CATALOG_URL: ${{ vars.ANDES_CATALOG_URL }}
+        run: |
+          mkdir -p dist
+          for os in darwin linux; do
+            for arch in amd64 arm64; do
+              GOOS=$os GOARCH=$arch go build \
+                -ldflags "-X github.com/andespath/andes-ai/internal/cli.defaultCatalogURL=${CATALOG_URL}" \
+                -o "dist/andes-$os-$arch" ./cmd/andes
+            done
+          done
+      # release-please already created the Release; we only attach the binaries.
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.release-please.outputs.tag_name }}" dist/* --clobber
