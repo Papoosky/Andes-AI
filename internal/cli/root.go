@@ -30,6 +30,6 @@ func NewRootCmd() *cobra.Command {
 			return nil
 		},
 	}
-	root.AddCommand(newInstallCmd(), newListCmd(), newDoctorCmd(), newUpdateCmd())
+	root.AddCommand(newInstallCmd(), newListCmd(), newDoctorCmd(), newUpdateCmd(), newValidateCmd())
 	return root
 }
