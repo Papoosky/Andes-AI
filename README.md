@@ -6,29 +6,30 @@ and drift diagnostics.
 
 ## Install
 
-No-clone one-liner — works on the private repo, authenticated through `gh`
-(everyone with repo access already has this):
+### If you have gh
+
+Install without cloning:
 
 ```bash
 gh api repos/Papoosky/Andes-AI/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
-# pin a version:
+```
+
+Pin a version:
+
+```bash
 gh api repos/Papoosky/Andes-AI/contents/install.sh -H "Accept: application/vnd.github.raw" | bash -s -- --version v0.1.0
 ```
 
-The Contents API respects `gh`'s auth (unlike `raw.githubusercontent.com`), and
-the script then downloads the binary with `gh release download` — all through
-the same login, no tokens to juggle.
-
-From a clone:
+Or clone and run:
 
 ```bash
 gh repo clone Papoosky/Andes-AI && ./Andes-AI/install.sh
 ```
 
-Public one-liner (once the repo is public or on an internal mirror):
+### From a clone
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Papoosky/Andes-AI/main/install.sh | bash
+git clone git@github.com:Papoosky/Andes-AI.git && ./Andes-AI/install.sh
 ```
 
 Then just run:
