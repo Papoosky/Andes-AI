@@ -43,6 +43,22 @@ func TestLintClean(t *testing.T) {
 	}
 }
 
+// TestLintSkipsUnreadableSkillMd covers the spec guarantee that a skill whose
+// SKILL.md is unreadable (here: absent) is silently skipped rather than
+// reported — existence is Load's responsibility, not Lint's.
+func TestLintSkipsUnreadableSkillMd(t *testing.T) {
+	src := lintFixture(t,
+		map[string]catalog.Profile{"core": {Description: "d", Skills: []string{"a"}}},
+		map[string]string{"a": ""}, // dir created, SKILL.md omitted
+	)
+	c := &catalog.Catalog{Name: "x", Profiles: map[string]catalog.Profile{
+		"core": {Description: "d", Skills: []string{"a"}},
+	}}
+	if got := catalog.Lint(src, c); len(got) != 0 {
+		t.Errorf("Lint with unreadable SKILL.md = %v, want none (skip, not report)", got)
+	}
+}
+
 func TestLintProblems(t *testing.T) {
 	tests := []struct {
 		name     string

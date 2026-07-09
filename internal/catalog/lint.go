@@ -60,7 +60,7 @@ func Lint(src Source, c *Catalog) []string {
 // Returns empty strings if the block or a field is absent.
 func frontmatterFields(md []byte) (name, desc string) {
 	s := string(md)
-	if !strings.HasPrefix(s, "---") {
+	if !strings.HasPrefix(s, "---\n") {
 		return "", ""
 	}
 	rest := s[len("---"):]
