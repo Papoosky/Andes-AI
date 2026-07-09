@@ -42,5 +42,6 @@ that adds your skill to whichever profile(s) make sense — a team profile,
    ./andes validate --catalog catalog
    ```
 
-4. Open a PR. CI runs `andes validate` — a PR that breaks the catalog cannot
-   merge. Reviewers discuss the skill's content and fit.
+4. Open a PR. The `ci` workflow (build + tests + `andes validate`) must pass —
+   a PR that breaks the catalog cannot merge. Reviewers discuss the skill's
+   content and fit.

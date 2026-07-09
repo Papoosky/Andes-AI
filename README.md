@@ -7,7 +7,7 @@ and drift diagnostics.
 ## Install
 
 ```bash
-gh repo clone andespath/andes-ai && ./andes-ai/install.sh
+gh repo clone Papoosky/Andes-AI && ./Andes-AI/install.sh
 ```
 
 Then just run:
@@ -29,7 +29,9 @@ go build -o andes ./cmd/andes
 
 ## Concepts
 
-- **Catalog**: folder (git repo in v2) with `catalog.json` + `skills/<id>/SKILL.md`.
+- **Catalog**: this repo's `catalog/` directory — `catalog.json` + `skills/<id>/SKILL.md`.
+  The tool and the catalog live in the same repo; consumers read a managed git
+  mirror of it at `~/.andes/catalog`.
 - **Profile**: named bundle of skills (`andespath-core` for everyone, one per team/client).
 - **Manifest** (`~/.claude/andes.json`): receipt of what is installed, with a hash per skill.
 - **Repair**: always re-run `andes install`. `doctor` diagnoses, never touches.
@@ -37,6 +39,7 @@ go build -o andes ./cmd/andes
 `andes` only manages the skills it installed (those in the manifest) — it never
 touches personal skills in `~/.claude/skills/`.
 
-## Design
+## Contributing
 
-Full spec in `docs/superpowers/specs/2026-07-07-andes-ai-mvp-design.md`.
+- Adding or editing a **skill**: see [CONTRIBUTING.md](CONTRIBUTING.md).
+- Working on the **tool** (build, test, layout, conventions): see [AGENTS.md](AGENTS.md).
