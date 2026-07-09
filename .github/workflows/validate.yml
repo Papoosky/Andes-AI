@@ -1,0 +1,16 @@
+name: validate
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - name: Build andes
+        run: go build -o andes ./cmd/andes
+      - name: Validate catalog
+        run: ./andes validate --catalog catalog
