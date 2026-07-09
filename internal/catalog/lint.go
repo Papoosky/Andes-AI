@@ -60,6 +60,9 @@ func Lint(src Source, c *Catalog) []string {
 // Returns empty strings if the block or a field is absent.
 func frontmatterFields(md []byte) (name, desc string) {
 	s := string(md)
+	// Normalize UTF-8 BOM and CRLF line endings so Windows-saved files are handled correctly
+	s = strings.TrimPrefix(s, "\xef\xbb\xbf") // strip UTF-8 BOM
+	s = strings.ReplaceAll(s, "\r\n", "\n")   // normalize CRLF to LF
 	if !strings.HasPrefix(s, "---\n") {
 		return "", ""
 	}

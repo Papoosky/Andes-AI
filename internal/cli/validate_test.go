@@ -39,7 +39,7 @@ func TestValidateValid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("validate valid catalog: %v\n%s", err, out)
 	}
-	if !strings.Contains(out, "catalog valid") || !strings.Contains(out, "1 profiles") || !strings.Contains(out, "1 skills") {
+	if !strings.Contains(out, "catalog valid") || !strings.Contains(out, "1 profile") || !strings.Contains(out, "1 skill") {
 		t.Errorf("unexpected success output:\n%s", out)
 	}
 }

@@ -12,6 +12,13 @@ import (
 	"github.com/andespath/andes-ai/internal/catalog"
 )
 
+func plural(n int, word string) string {
+	if n == 1 {
+		return fmt.Sprintf("%d %s", n, word)
+	}
+	return fmt.Sprintf("%d %ss", n, word)
+}
+
 func newValidateCmd() *cobra.Command {
 	var catalogFlag string
 	cmd := &cobra.Command{
@@ -51,7 +58,7 @@ func runValidate(cmd *cobra.Command, catalogFlag string) error {
 			unique[id] = true
 		}
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "✓ catalog valid: %d profiles, %d skills\n", len(c.Profiles), len(unique))
+	fmt.Fprintf(cmd.OutOrStdout(), "✓ catalog valid: %s, %s\n", plural(len(c.Profiles), "profile"), plural(len(unique), "skill"))
 	return nil
 }
 

@@ -104,6 +104,37 @@ func TestLintProblems(t *testing.T) {
 	}
 }
 
+// TestLintCRLFAndBOM ensures that valid SKILL.md files with Windows line endings
+// (CRLF) or UTF-8 BOM are accepted without frontmatter errors.
+func TestLintCRLFAndBOM(t *testing.T) {
+	tests := []struct {
+		name     string
+		profiles map[string]catalog.Profile
+		skills   map[string]string
+	}{
+		{
+			name:     "CRLF line endings",
+			profiles: map[string]catalog.Profile{"core": {Description: "d", Skills: []string{"a"}}},
+			skills:   map[string]string{"a": "---\r\nname: x\r\ndescription: does a thing\r\n---\r\n# X\r\n"},
+		},
+		{
+			name:     "UTF-8 BOM prefix",
+			profiles: map[string]catalog.Profile{"core": {Description: "d", Skills: []string{"a"}}},
+			skills:   map[string]string{"a": "\xef\xbb\xbf---\nname: x\ndescription: does a thing\n---\n# X\n"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := lintFixture(t, tt.profiles, tt.skills)
+			c := &catalog.Catalog{Name: "x", Profiles: tt.profiles}
+			got := catalog.Lint(src, c)
+			if len(got) != 0 {
+				t.Errorf("Lint with %s = %v, want no problems (should be CLEAN)", tt.name, got)
+			}
+		})
+	}
+}
+
 func TestLintSorted(t *testing.T) {
 	src := lintFixture(t,
 		map[string]catalog.Profile{"z": {Description: "d", Skills: []string{}}, "a": {Description: "d", Skills: []string{}}},
