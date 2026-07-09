@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/andespath/andes-ai/internal/catalog"
 	"github.com/andespath/andes-ai/internal/manifest"
@@ -52,9 +54,9 @@ func resolveSource(catalogFlag string, prev *manifest.Manifest, yes bool) (catal
 			}
 		}
 	}
-	// 3. Baked company default.
+	// 3. Baked company default. Probe SSH/HTTPS so one binary serves both.
 	if defaultCatalogURL != "" {
-		return gitSource(defaultCatalogURL)
+		return gitSource(pickWorkingGitURL(defaultCatalogURL))
 	}
 	// 4. Prompt (or fail under --yes).
 	if yes {
@@ -72,13 +74,35 @@ func sourceFor(loc string) (catalog.Source, manifest.CatalogRef, error) {
 		return nil, manifest.CatalogRef{}, fmt.Errorf("invalid catalog URL %q: must not start with '-'", loc)
 	}
 	if isGitURL(loc) {
-		return gitSource(loc)
+		return gitSource(pickWorkingGitURL(loc))
 	}
 	abs, err := filepath.Abs(loc)
 	if err != nil {
 		return nil, manifest.CatalogRef{}, err
 	}
 	return catalog.LocalDir{Root: abs}, manifest.CatalogRef{Type: "local", Path: abs}, nil
+}
+
+// pickWorkingGitURL returns the first protocol variant of url (SSH or HTTPS)
+// that a git ls-remote can actually reach, so a single baked binary serves both
+// SSH and HTTPS devs. Non-github URLs (file://, local paths) have a single
+// variant and are returned unprobed. If none reach — offline or no access — the
+// input is returned so the normal actionable auth error surfaces downstream.
+// The URL that wins is persisted in the manifest, so later runs skip the probe.
+func pickWorkingGitURL(url string) string {
+	variants := catalog.URLVariants(url)
+	if len(variants) < 2 {
+		return url
+	}
+	for _, v := range variants {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		_, err := catalog.GitRepo{URL: v}.RemoteHead(ctx)
+		cancel()
+		if err == nil {
+			return v
+		}
+	}
+	return url
 }
 
 func gitSource(url string) (catalog.Source, manifest.CatalogRef, error) {

@@ -41,6 +41,11 @@ fallback. When building from source it bakes the catalog git URL into the binary
 (derived from `REPO`, probing SSH then HTTPS) so `andes install` needs no
 `--catalog` flag. Override with `ANDES_CATALOG_URL`.
 
+Downloaded release binaries bake a single URL (the `ANDES_CATALOG_URL` repo
+variable). At runtime `andes` probes SSH then HTTPS for that catalog
+(`pickWorkingGitURL` in `internal/cli/resolve.go`), so one binary serves both
+SSH and HTTPS devs; the URL that works is persisted in the manifest.
+
 ## Commands
 
 | Command | Mode | What it does |
