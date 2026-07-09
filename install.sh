@@ -2,7 +2,7 @@
 # andes installer — downloads a release binary via gh, or builds from source.
 set -euo pipefail
 
-REPO="andespath/andes-ai"          # update when the repo lands on company GitHub
+REPO="Papoosky/Andes-AI"
 BIN_DIR="${HOME}/.local/bin"
 # Baked at build time when building from source; empty until the repo is on GitHub.
 CATALOG_URL="${ANDES_CATALOG_URL:-}"
