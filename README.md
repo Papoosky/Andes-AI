@@ -6,8 +6,18 @@ and drift diagnostics.
 
 ## Install
 
+From a clone (works for the private repo — `gh` handles auth):
+
 ```bash
 gh repo clone Papoosky/Andes-AI && ./Andes-AI/install.sh
+```
+
+One-liner (once the repo is public or on an internal mirror):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Papoosky/Andes-AI/main/install.sh | bash
+# pin a version:
+curl -fsSL https://raw.githubusercontent.com/Papoosky/Andes-AI/main/install.sh | bash -s -- --version v0.1.0
 ```
 
 Then just run:
