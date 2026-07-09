@@ -537,12 +537,12 @@ jobs:
       - name: Build andes
         run: go build -o andes ./cmd/andes
       - name: Validate catalog
-        run: ./andes validate --catalog .
+        run: ./andes validate --catalog catalog
 ```
 
 - [ ] **Step 2: Verify the workflow validates the real catalog locally**
 
-Run: `go build -o andes ./cmd/andes && ./andes validate --catalog .`
+Run: `go build -o andes ./cmd/andes && ./andes validate --catalog catalog`
 Expected: `✓ catalog valid: 2 profiles, 3 skills` (exit 0). This is exactly what the CI step runs.
 
 - [ ] **Step 3: Write CONTRIBUTING.md**
@@ -591,7 +591,7 @@ that adds your skill to whichever profile(s) make sense — a team profile,
 
    ```bash
    go build -o andes ./cmd/andes
-   ./andes validate --catalog .
+   ./andes validate --catalog catalog
    ```
 
 4. Open a PR. CI runs `andes validate` — a PR that breaks the catalog cannot
@@ -617,7 +617,7 @@ that adds your skill to whichever profile(s) make sense — a team profile,
 
 ## Checklist
 
-- [ ] `andes validate --catalog .` passes locally
+- [ ] `andes validate --catalog catalog` passes locally
 - [ ] Each skill has `SKILL.md` frontmatter (name + description)
 ```
 
