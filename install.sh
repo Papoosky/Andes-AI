@@ -4,8 +4,21 @@ set -euo pipefail
 
 REPO="Papoosky/Andes-AI"
 BIN_DIR="${HOME}/.local/bin"
-# Baked at build time when building from source; empty until the repo is on GitHub.
-CATALOG_URL="${ANDES_CATALOG_URL:-}"
+# derive_catalog_url resolves the catalog git URL from REPO by probing which
+# protocol THIS dev can actually reach: SSH first (stable for private repos —
+# no token expiry), then HTTPS. ANDES_CATALOG_URL overrides everything. This
+# runs on the dev's machine, so each dev bakes the URL that matches their auth.
+derive_catalog_url() {
+  local ssh_url="git@github.com:${REPO}.git"
+  local https_url="https://github.com/${REPO}.git"
+  if git ls-remote "$ssh_url" >/dev/null 2>&1; then
+    echo "$ssh_url"
+  elif git ls-remote "$https_url" >/dev/null 2>&1; then
+    echo "$https_url"
+  else
+    echo "$https_url"  # fallback; andes surfaces the auth error at install time
+  fi
+}
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
@@ -28,9 +41,12 @@ install_from_source() {
   command -v go >/dev/null 2>&1 || return 1
   local src_dir
   src_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local catalog_url
+  catalog_url="${ANDES_CATALOG_URL:-$(derive_catalog_url)}"
   local ldflags=""
-  if [ -n "$CATALOG_URL" ]; then
-    ldflags="-X github.com/andespath/andes-ai/internal/cli.defaultCatalogURL=${CATALOG_URL}"
+  if [ -n "$catalog_url" ]; then
+    ldflags="-X github.com/andespath/andes-ai/internal/cli.defaultCatalogURL=${catalog_url}"
+    echo "baking catalog URL → ${catalog_url}"
   fi
   (cd "$src_dir" && go build -ldflags "$ldflags" -o "$BIN_DIR/andes" ./cmd/andes)
   echo "built from source → $BIN_DIR/andes"
