@@ -42,6 +42,9 @@ that adds your skill to whichever profile(s) make sense — a team profile,
    ./andes validate --catalog catalog
    ```
 
+   Catalog skills must be regular files/directories. Symlinks are rejected so
+   installs never copy or hash content outside the catalog tree by accident.
+
 4. Open a PR. The `ci` workflow (build + tests + `andes validate`) must pass —
    a PR that breaks the catalog cannot merge. Reviewers discuss the skill's
    content and fit.

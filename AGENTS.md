@@ -41,10 +41,11 @@ fallback. When building from source it bakes the catalog git URL into the binary
 (derived from `REPO`, probing SSH then HTTPS) so `andes install` needs no
 `--catalog` flag. Override with `ANDES_CATALOG_URL`.
 
-Downloaded release binaries bake a single URL (the `ANDES_CATALOG_URL` repo
-variable). At runtime `andes` probes SSH then HTTPS for that catalog
-(`pickWorkingGitURL` in `internal/cli/resolve.go`), so one binary serves both
-SSH and HTTPS devs; the URL that works is persisted in the manifest.
+Downloaded release binaries derive the catalog URL from the release repository
+itself (`git@github.com:${{ github.repository }}.git`) because the catalog is
+co-located in this repo. At runtime `andes` probes SSH then HTTPS for that
+catalog (`pickWorkingGitURL` in `internal/cli/resolve.go`), so one binary serves
+both SSH and HTTPS devs; the URL that works is persisted in the manifest.
 
 ## Commands
 
@@ -88,17 +89,25 @@ Key architectural seams:
 ## CI
 
 The `ci` workflow (`.github/workflows/ci.yml`) runs on every PR to `main`:
-`go build` → `go test ./...` → `andes validate --catalog catalog`. It covers
-both code PRs and skill PRs — a code-only PR passes `validate` trivially because
-the catalog is unchanged. All three steps must pass to merge.
+`gofmt` check → `go vet ./...` → `go build` → `go test ./...` →
+`andes validate --catalog catalog`. It covers both code PRs and skill PRs — a
+code-only PR passes `validate` trivially because the catalog is unchanged. All
+steps must pass to merge.
 
 Releases are automated with **release-please** (`.github/workflows/release-please.yml`).
 It reads the Conventional Commits on `main` and keeps a **Release PR** open with
 the next version bump + `CHANGELOG.md`. Merging that PR creates the git tag and
 GitHub Release; the workflow then builds the multi-OS/arch binaries and uploads
 them as release assets. Version state lives in `.release-please-manifest.json`;
-config in `release-please-config.json`. You never tag by hand — you merge the
-Release PR when you want to ship.
+config in `release-please-config.json`. Release binaries bake the catalog URL
+from the release repo itself (`git@github.com:${{ github.repository }}.git`)
+because the tool and catalog are co-located. You never tag by hand — you merge
+the Release PR when you want to ship.
+
+Work on feature branches and open PRs to `main`. The `ci` workflow is PR-based;
+pushing directly to `main` bypasses the review gate and only triggers
+release-please. Direct pushes should be reserved for deliberate maintainer
+actions, not normal development.
 
 ## Conventions
 
@@ -112,6 +121,17 @@ Release PR when you want to ship.
 ## Contributing a change to the tool
 
 1. Branch: `git checkout -b feat/my-change`.
-2. Make the change with a test. Run `go test ./...`.
-3. Commit following the conventions above.
-4. Open a PR to `main` and let CI run.
+2. Make the change with a test.
+3. Run local quality checks:
+
+   ```bash
+   test -z "$(gofmt -l .)"
+   go vet ./...
+   go test ./...
+   ```
+
+   Do not build locally just to validate a change unless you are explicitly
+   working on build/release behavior.
+
+4. Commit following the conventions above.
+5. Open a PR to `main` and let CI run.

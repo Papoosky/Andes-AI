@@ -50,6 +50,11 @@ go build -o andes ./cmd/andes
 ```
 
 For TUI-first manual validation flows, see [docs/tui-testing.md](docs/tui-testing.md).
+For installer validation flows, see [docs/install-testing.md](docs/install-testing.md).
+
+Normal development happens on feature branches with PRs back to `main`; CI runs
+formatting, `go vet`, tests, build, and catalog validation on those PRs.
+Releases are handled by release-please after changes land on `main`.
 
 ## Concepts
 

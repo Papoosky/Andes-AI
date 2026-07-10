@@ -115,6 +115,59 @@ func TestLocalDirLoadErrors(t *testing.T) {
 			},
 			wantErr: "invalid id",
 		},
+		{
+			name: "skill md symlink rejected",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
+					"name": "x",
+					"profiles": {"p1": {"description": "d", "skills": ["linked"]}}
+				}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				skillDir := filepath.Join(dir, "skills", "linked")
+				if err := os.MkdirAll(skillDir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				target := filepath.Join(dir, "target.md")
+				if err := os.WriteFile(target, []byte("# linked"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(target, filepath.Join(skillDir, "SKILL.md")); err != nil {
+					t.Fatal(err)
+				}
+				return dir
+			},
+			wantErr: "symlinks are not allowed",
+		},
+		{
+			name: "extra symlink in skill rejected",
+			setup: func(t *testing.T) string {
+				dir := t.TempDir()
+				if err := os.WriteFile(filepath.Join(dir, "catalog.json"), []byte(`{
+					"name": "x",
+					"profiles": {"p1": {"description": "d", "skills": ["linked"]}}
+				}`), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				skillDir := filepath.Join(dir, "skills", "linked")
+				if err := os.MkdirAll(skillDir, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# linked"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				target := filepath.Join(dir, "outside.txt")
+				if err := os.WriteFile(target, []byte("outside"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(target, filepath.Join(skillDir, "outside-link.txt")); err != nil {
+					t.Fatal(err)
+				}
+				return dir
+			},
+			wantErr: "symlinks are not allowed",
+		},
 	}
 
 	for _, tt := range tests {

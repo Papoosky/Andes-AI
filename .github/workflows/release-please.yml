@@ -31,7 +31,7 @@ jobs:
         run: go test ./...
       - name: Build matrix
         env:
-          CATALOG_URL: ${{ vars.ANDES_CATALOG_URL }}
+          CATALOG_URL: "git@github.com:${{ github.repository }}.git"
         run: |
           mkdir -p dist
           for os in darwin linux; do

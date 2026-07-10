@@ -51,6 +51,10 @@ func (l LocalDir) validate(c *Catalog) error {
 			} else if err != nil {
 				return fmt.Errorf("could not verify %s: %w", skillMD, err)
 			}
+			if err := rejectSymlinks(l.SkillPath(id)); err != nil {
+				problems = append(problems,
+					fmt.Sprintf("profile %q references skill %q: %v", name, id, err))
+			}
 		}
 	}
 	if len(problems) > 0 {
@@ -58,6 +62,22 @@ func (l LocalDir) validate(c *Catalog) error {
 		return fmt.Errorf("invalid catalog:\n  %s", strings.Join(problems, "\n  "))
 	}
 	return nil
+}
+
+func rejectSymlinks(root string) error {
+	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.Type()&os.ModeSymlink == 0 {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("symlinks are not allowed (%s)", filepath.ToSlash(rel))
+	})
 }
 
 // validSkillID rejects ids that could escape the skills directory.
