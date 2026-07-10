@@ -210,6 +210,72 @@ func TestApplyPreservesExecBit(t *testing.T) {
 	}
 }
 
+func TestApplySkipRepairsPermissionDrift(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "catalog.json"), []byte(`{
+		"name": "exectest",
+		"profiles": {
+			"exec": {"description": "exec", "skills": ["execskill"]}
+		}
+	}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	skillDir := filepath.Join(root, "skills", "execskill")
+	if err := os.MkdirAll(skillDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# execskill"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	src := catalog.LocalDir{Root: root}
+	cat, err := src.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	actions, err := installer.Plan(src, cat, nil, []string{"exec"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	skillsDir := t.TempDir()
+	installed, err := installer.Apply(src, actions, skillsDir)
+	if err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+
+	runSh := filepath.Join(skillsDir, "execskill", "run.sh")
+	if err := os.Chmod(runSh, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mf := &manifest.Manifest{
+		Version:   1,
+		Installed: map[string]manifest.InstalledSkill{"execskill": installed["execskill"]},
+	}
+	actions2, err := installer.Plan(src, cat, mf, []string{"exec"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(actions2) != 1 || actions2[0].Type != installer.ActionSkip {
+		t.Fatalf("expected 1 skip action before disk re-check, got %+v", actions2)
+	}
+
+	if _, err := installer.Apply(src, actions2, skillsDir); err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+
+	fi, err := os.Stat(runSh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Mode().Perm()&0o100 == 0 {
+		t.Errorf("run.sh mode = %04o, exec bit should have been repaired", fi.Mode().Perm())
+	}
+}
+
 func TestApplyUpdateReplacesStaleFiles(t *testing.T) {
 	src := makeCatalog(t)
 	cat := loadCat(t, src)
@@ -233,5 +299,45 @@ func TestApplyUpdateReplacesStaleFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(stale, "SKILL.md")); err != nil {
 		t.Error("SKILL.md missing after update")
+	}
+}
+
+func TestApplyRemovesDeselectedManagedSkill(t *testing.T) {
+	src := makeCatalog(t)
+	cat := loadCat(t, src)
+	skillsDir := t.TempDir()
+
+	initialActions, err := installer.Plan(src, cat, nil, []string{"core", "tri"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	initialInstalled, err := installer.Apply(src, initialActions, skillsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mf := &manifest.Manifest{
+		Version:   1,
+		Profiles:  []string{"core", "tri"},
+		Installed: initialInstalled,
+	}
+	nextActions, err := installer.Plan(src, cat, mf, []string{"core"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nextInstalled, err := installer.Apply(src, nextActions, skillsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(filepath.Join(skillsDir, "golang")); !os.IsNotExist(err) {
+		t.Fatalf("deselected managed skill golang should be removed, stat err = %v", err)
+	}
+	if _, ok := nextInstalled["golang"]; ok {
+		t.Fatalf("removed skill golang must not remain in installed manifest map: %+v", nextInstalled)
+	}
+	if _, err := os.Stat(filepath.Join(skillsDir, "git-conventions", "SKILL.md")); err != nil {
+		t.Fatalf("still-selected skill git-conventions should remain installed: %v", err)
 	}
 }

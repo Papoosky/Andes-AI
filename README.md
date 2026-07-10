@@ -49,6 +49,8 @@ go build -o andes ./cmd/andes
 ./andes install --catalog ./catalog --profiles andespath-core --yes   # local catalog
 ```
 
+For TUI-first manual validation flows, see [docs/tui-testing.md](docs/tui-testing.md).
+
 ## Concepts
 
 - **Catalog**: this repo's `catalog/` directory — `catalog.json` + `skills/<id>/SKILL.md`.

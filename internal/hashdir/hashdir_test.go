@@ -119,6 +119,30 @@ func TestHashChangesOnRename(t *testing.T) {
 	}
 }
 
+func TestHashChangesOnPermissionChange(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "run.sh")
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	h1, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h2, err := hashdir.Hash(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if h1 == h2 {
+		t.Error("hash did not change after file permission change")
+	}
+}
+
 func TestHashMissingDir(t *testing.T) {
 	_, err := hashdir.Hash(filepath.Join(t.TempDir(), "does-not-exist"))
 	if err == nil {

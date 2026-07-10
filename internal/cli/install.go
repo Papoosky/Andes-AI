@@ -107,7 +107,7 @@ func installAndSave(cmd *cobra.Command, src catalog.Source, cat *catalog.Catalog
 			}
 			if !ok {
 				fmt.Fprintln(cmd.OutOrStdout(), "Aborted — nothing was touched.")
-				return nil
+				return errors.New("aborted — nothing was touched")
 			}
 		}
 	}

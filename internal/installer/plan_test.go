@@ -128,3 +128,43 @@ func TestPlanUnknownProfile(t *testing.T) {
 		t.Error("Plan() with non-existent profile should fail")
 	}
 }
+
+func TestPlanRemovesPreviouslyManagedSkillWhenProfileDeselected(t *testing.T) {
+	src := makeCatalog(t)
+	cat := loadCat(t, src)
+
+	golangHash, err := hashdir.Hash(src.SkillPath("golang"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	coreHash, err := hashdir.Hash(src.SkillPath("git-conventions"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := &manifest.Manifest{
+		Version:  1,
+		Profiles: []string{"core", "tri"},
+		Installed: map[string]manifest.InstalledSkill{
+			"git-conventions": {Hash: coreHash, Profile: "core"},
+			"golang":          {Hash: golangHash, Profile: "tri"},
+		},
+	}
+
+	actions, err := installer.Plan(src, cat, m, []string{"core"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var foundRemove bool
+	for _, a := range actions {
+		if a.SkillID == "golang" {
+			foundRemove = true
+			if a.Type != installer.ActionRemove {
+				t.Fatalf("golang action = %q, want remove", a.Type)
+			}
+		}
+	}
+	if !foundRemove {
+		t.Fatalf("actions = %+v, want remove action for deselected managed skill golang", actions)
+	}
+}

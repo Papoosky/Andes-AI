@@ -86,7 +86,7 @@ type ApplyInstallFunc func(catalogOverride string, profiles []string) (summary s
 // installer.Action but lives in tui so tui stays decoupled from installer.
 type PlanItem struct {
 	SkillID string
-	Action  string // "install" | "update" | "unchanged"
+	Action  string // "install" | "update" | "unchanged" | "remove"
 	Profile string
 }
 

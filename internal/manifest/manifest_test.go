@@ -65,6 +65,73 @@ func TestLoadCorruptFails(t *testing.T) {
 	}
 }
 
+func TestLoadSemanticallyInvalidManifestFails(t *testing.T) {
+	tests := []struct {
+		name    string
+		json    string
+		wantErr string
+	}{
+		{
+			name: "unsupported version",
+			json: `{
+				"version": 2,
+				"catalog": {"type": "local", "path": "/tmp/cat"},
+				"installed": {}
+			}`,
+			wantErr: "unsupported manifest version",
+		},
+		{
+			name: "unknown catalog type",
+			json: `{
+				"version": 1,
+				"catalog": {"type": "s3"},
+				"installed": {}
+			}`,
+			wantErr: "invalid catalog type",
+		},
+		{
+			name: "local catalog missing path",
+			json: `{
+				"version": 1,
+				"catalog": {"type": "local"},
+				"installed": {}
+			}`,
+			wantErr: "local catalog path is required",
+		},
+		{
+			name: "git catalog missing url",
+			json: `{
+				"version": 1,
+				"catalog": {"type": "git"},
+				"installed": {}
+			}`,
+			wantErr: "git catalog URL is required",
+		},
+		{
+			name: "installed map missing",
+			json: `{
+				"version": 1,
+				"catalog": {"type": "local", "path": "/tmp/cat"}
+			}`,
+			wantErr: "installed map is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "andes.json")
+			if err := os.WriteFile(path, []byte(tt.json), 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			_, err := manifest.Load(path)
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("Load() error = %v, want containing %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestSaveLeavesNoTempFiles(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "andes.json")

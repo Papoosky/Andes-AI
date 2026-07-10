@@ -89,6 +89,30 @@ func TestInstallPlanShowsSkillNames(t *testing.T) {
 	}
 }
 
+func TestInstallPlanCountsRemoveActions(t *testing.T) {
+	m := New(nil, nil, nil, nil, nil)
+	sized, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 40})
+	m = sized.(Model)
+	m.screen = ScreenInstallPlan
+	m.selectedProfiles = []string{"andespath-core"}
+
+	m2, _ := m.Update(planDoneMsg{items: []PlanItem{
+		{SkillID: "golang", Action: "remove", Profile: "tri-fleet"},
+	}})
+	mm := m2.(Model)
+
+	view := mm.View()
+	if !contains(view, "remove") || !contains(view, "golang") {
+		t.Errorf("Review must show removed skill action:\n%s", view)
+	}
+	if !contains(view, "1 to remove") {
+		t.Errorf("Review must count remove actions separately:\n%s", view)
+	}
+	if contains(view, "1 unchanged") {
+		t.Errorf("Review must not count remove actions as unchanged:\n%s", view)
+	}
+}
+
 func TestInstallDoneShowsOutput(t *testing.T) {
 	m := New(nil, nil, nil, nil, nil)
 	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})

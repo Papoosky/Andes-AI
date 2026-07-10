@@ -371,20 +371,22 @@ func (m Model) viewInstallPlan() string {
 	}
 
 	// Derived counts summary.
-	nInstall, nUpdate, nUnchanged := 0, 0, 0
+	nInstall, nUpdate, nRemove, nUnchanged := 0, 0, 0, 0
 	for _, it := range m.planItems {
 		switch it.Action {
 		case "install":
 			nInstall++
 		case "update":
 			nUpdate++
+		case "remove":
+			nRemove++
 		default:
 			nUnchanged++
 		}
 	}
 	sb.WriteString("\n")
-	sb.WriteString(muted.Render(fmt.Sprintf("%d to install, %d to update, %d unchanged",
-		nInstall, nUpdate, nUnchanged)))
+	sb.WriteString(muted.Render(fmt.Sprintf("%d to install, %d to update, %d to remove, %d unchanged",
+		nInstall, nUpdate, nRemove, nUnchanged)))
 
 	sb.WriteString("\n\n")
 	if m.installing {

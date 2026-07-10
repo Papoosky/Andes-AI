@@ -20,6 +20,7 @@ const (
 	ActionInstall ActionType = "install"
 	ActionUpdate  ActionType = "update"
 	ActionSkip    ActionType = "unchanged"
+	ActionRemove  ActionType = "remove"
 )
 
 // Action is one planned step for one skill. Hash is the catalog-side hash.
@@ -61,6 +62,23 @@ func Plan(src catalog.Source, cat *catalog.Catalog, m *manifest.Manifest, profil
 		}
 		actions = append(actions, a)
 	}
+	if m != nil {
+		removedIDs := make([]string, 0)
+		for id := range m.Installed {
+			if _, stillDesired := resolved[id]; !stillDesired {
+				removedIDs = append(removedIDs, id)
+			}
+		}
+		sort.Strings(removedIDs)
+		for _, id := range removedIDs {
+			actions = append(actions, Action{
+				SkillID: id,
+				Type:    ActionRemove,
+				Profile: m.Installed[id].Profile,
+				Hash:    m.Installed[id].Hash,
+			})
+		}
+	}
 	return actions, nil
 }
 
@@ -72,6 +90,14 @@ func Apply(src catalog.Source, actions []Action, skillsDir string) (map[string]m
 	installed := make(map[string]manifest.InstalledSkill, len(actions))
 	for _, a := range actions {
 		actionType := a.Type
+		if actionType == ActionRemove {
+			dst := filepath.Join(skillsDir, a.SkillID)
+			if err := os.RemoveAll(dst); err != nil {
+				return nil, fmt.Errorf("could not remove deselected skill %q at %s: %w", a.SkillID, dst, err)
+			}
+			continue
+		}
+
 		// Check if skipped skill is missing or modified on disk: if so, repair it.
 		if actionType == ActionSkip {
 			diskPath := filepath.Join(skillsDir, a.SkillID)
