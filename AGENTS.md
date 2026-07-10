@@ -58,7 +58,11 @@ both SSH and HTTPS devs; the URL that works is persisted in the manifest.
 | `validate` | contributor | Check a local catalog checkout (JSON, skill refs, frontmatter) |
 
 Consumer commands read the managed mirror (`~/.andes/catalog`, read-only).
-`validate` operates on a local catalog checkout — never the mirror.
+`validate` operates on a local catalog checkout — never the mirror. For git
+installs, manifest `catalog.ref` is the last applied catalog HEAD used for
+freshness/update checks; it is not a pinned checkout contract. `doctor` warns
+when the local mirror HEAD differs from that ref because it may be diagnosing
+against a different catalog snapshot than the one originally installed.
 
 ## Project layout
 

@@ -63,6 +63,8 @@ Releases are handled by release-please after changes land on `main`.
   mirror of it at `~/.andes/catalog`.
 - **Profile**: named bundle of skills (`andespath-core` for everyone, one per team/client).
 - **Manifest** (`~/.claude/andes.json`): receipt of what is installed, with a hash per skill.
+  For git catalogs, `catalog.ref` records the last applied catalog HEAD for
+  freshness/update checks; it is not a pinned checkout guarantee.
 - **Repair**: always re-run `andes install`. `doctor` diagnoses, never touches.
 
 `andes` only manages the skills it installed (those in the manifest) — it never

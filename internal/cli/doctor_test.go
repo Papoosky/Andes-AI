@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -37,6 +38,63 @@ func TestDoctorDetectsMissingSkill(t *testing.T) {
 	}
 	if !strings.Contains(out, "missing") {
 		t.Errorf("doctor does not report the missing skill:\n%s", out)
+	}
+}
+
+func TestDoctorDoesNotWarnWhenGitManifestRefMatchesMirror(t *testing.T) {
+	home := t.TempDir()
+	repo, _ := gitFixture(t)
+
+	if _, err := runAndes(t, home,
+		"install", "--catalog", "file://"+repo, "--profiles", "tri-fleet", "--yes"); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := runAndes(t, home, "doctor")
+	if err != nil {
+		t.Fatalf("doctor should remain healthy: %v\n%s", err, out)
+	}
+	if strings.Contains(out, "Warning: local catalog mirror is at") {
+		t.Errorf("doctor should not warn when manifest ref matches mirror HEAD:\n%s", out)
+	}
+}
+
+func TestDoctorWarnsWhenGitMirrorHeadDiffersFromManifestRef(t *testing.T) {
+	home := t.TempDir()
+	repo, commit := gitFixture(t)
+	url := "file://" + repo
+
+	if _, err := runAndes(t, home,
+		"install", "--catalog", url, "--profiles", "tri-fleet", "--yes"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Advance the upstream repo without changing catalog content, then advance the
+	// local mirror outside `andes update`. Doctor should stay read-only and healthy,
+	// but warn that it is reading a different catalog HEAD than the installed ref.
+	if err := os.WriteFile(filepath.Join(repo, "README.md"), []byte("metadata only"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	commit("metadata only")
+
+	mirror := filepath.Join(home, ".andes", "catalog")
+	for _, args := range [][]string{
+		{"-C", mirror, "fetch", "origin"},
+		{"-C", mirror, "reset", "--hard", "origin/HEAD"},
+	} {
+		cmd := exec.Command("git", args...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	out, err := runAndes(t, home, "doctor")
+	if err != nil {
+		t.Fatalf("doctor should remain healthy for metadata-only catalog ref drift: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "Warning: local catalog mirror is at") ||
+		!strings.Contains(out, "manifest was installed from") {
+		t.Errorf("doctor should warn about catalog ref drift:\n%s", out)
 	}
 }
 

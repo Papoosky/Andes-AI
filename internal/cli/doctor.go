@@ -47,6 +47,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("catalog inaccessible at %s: fix the path and re-run `andes install --catalog <path>` (%w)",
 			loc, err)
 	}
+	warnCatalogRefDrift(cmd, src, m)
 
 	sDir, err := skillsDir()
 	if err != nil {
@@ -75,4 +76,28 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "All healthy ✓")
 	return nil
+}
+
+func warnCatalogRefDrift(cmd *cobra.Command, src catalog.Source, m *manifest.Manifest) {
+	if m.Catalog.Type != "git" || m.Catalog.Ref == "" {
+		return
+	}
+	g, ok := src.(catalog.GitRepo)
+	if !ok {
+		return
+	}
+	head, err := g.LocalHead()
+	if err != nil || head == m.Catalog.Ref {
+		return
+	}
+	fmt.Fprintf(cmd.ErrOrStderr(),
+		"Warning: local catalog mirror is at %s, but manifest was installed from %s. Run `andes update` to refresh installed skills, or reinstall if the mirror was changed manually.\n",
+		shortRef(head), shortRef(m.Catalog.Ref))
+}
+
+func shortRef(ref string) string {
+	if len(ref) <= 12 {
+		return ref
+	}
+	return ref[:12]
 }

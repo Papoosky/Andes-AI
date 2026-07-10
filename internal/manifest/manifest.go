@@ -14,7 +14,7 @@ type CatalogRef struct {
 	Type string `json:"type"`           // "local" | "git"
 	Path string `json:"path,omitempty"` // local: absolute folder path
 	URL  string `json:"url,omitempty"`  // git: repo URL
-	Ref  string `json:"ref,omitempty"`  // git: commit SHA installed from
+	Ref  string `json:"ref,omitempty"`  // git: last applied catalog HEAD; used for freshness, not pinned checkouts
 }
 
 type InstalledSkill struct {
