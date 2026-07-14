@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.1](https://github.com/Papoosky/Andes-AI/compare/v0.1.0...v0.1.1) (2026-07-10)
+
+
+### Features
+
+* support curl-pipe install and --version flag ([7e0dbf1](https://github.com/Papoosky/Andes-AI/commit/7e0dbf15b3b978503e34c76115411afcffd8a615))
+
+
+### Bug Fixes
+
+* harden install state contracts ([2b87bcb](https://github.com/Papoosky/Andes-AI/commit/2b87bcbca83b54a02d9d623e7f4a4df9a1144bf0))
+* warn on catalog ref drift ([852ee74](https://github.com/Papoosky/Andes-AI/commit/852ee74ec286628de445a5d913d3d4ade5e77c07))
+
 ## 0.1.0 (2026-07-09)
 
 
